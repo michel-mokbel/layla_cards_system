@@ -1,0 +1,9 @@
+name_en,name_ar,calories_kcal,carbs_g,protein_g,fat_g,gluten,protein_type,dairy
+Orange Juice,عصير برتقال,55.0,13.0,2.0,0.0,gluten_free,veg,dairy_free
+Mango Juice,عصير مانغا,65.0,16.0,1.0,0.0,gluten_free,veg,dairy_free
+Beetroot Salad,سلطة شمندر,120.0,25.0,3.0,1.0,gluten_free,veg,dairy_free
+Tuna Sandwiches,ساندويتش تونا,75.0,6.0,5.0,3.5,gluten,meat,dairy_free
+Tabbouleh Cup,كوب تبولة,180.0,26.0,6.0,10.0,gluten_free,veg,dairy_free
+Almond Chia Energy Bites,كرات طاقة باللوز والشيا,180.0,16.0,5.0,11.0,gluten_free,veg,dairy_free
+Mini Pizza,بيتزا صغيرة,230.0,28.0,11.0,11.0,gluten,veg,dairy
+Mini Zaatar,زعتر صغير,150.0,15.0,2.0,5.0,gluten,veg,dairy_free
