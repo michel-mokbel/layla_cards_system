@@ -73,7 +73,14 @@ if missing:
 def _pick_arabic_font() -> Path | None:
     if not FONTS_DIR.exists():
         return None
-    ttf = sorted(FONTS_DIR.glob("*.ttf"))
+    ttf = sorted(FONTS_DIR.glob("*Regular*.ttf")) or sorted(FONTS_DIR.glob("*.ttf"))
+    return ttf[0] if ttf else None
+
+
+def _pick_arabic_bold_font() -> Path | None:
+    if not FONTS_DIR.exists():
+        return None
+    ttf = sorted(FONTS_DIR.glob("*Bold*.ttf"))
     return ttf[0] if ttf else None
 
 
@@ -92,6 +99,7 @@ def _load_layout_dict() -> dict:
 
 # Assets
 default_arabic_font = _pick_arabic_font()
+default_arabic_bold_font = _pick_arabic_bold_font()
 assets = AssetPaths(
     logo=ASSETS_DIR / "logo.png",
     icon_gluten=ICONS_DIR / "gluten.png",
@@ -103,12 +111,13 @@ assets = AssetPaths(
     template_page=TEMPLATE_PAGE if TEMPLATE_PAGE.exists() else None,
     # Auto-pick first TTF in assets/fonts/ if present (fixes Arabic "boxes" issue)
     font_arabic=default_arabic_font,
+    font_arabic_bold=default_arabic_bold_font,
 )
 
 layout_cfg = load_layout_config(LAYOUT_JSON)
 
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["Generate PDF", "Dish Database", "Add Dish (Auto-fill)", "Layout Tuner"]
+tab1, tab2, tab3 = st.tabs(
+    ["Generate PDF", "Dish Database", "Add Dish (Auto-fill)"]
 )
 
 with tab1:
@@ -273,47 +282,50 @@ with tab3:
                 "Tip: put an Arabic TTF in assets/fonts/ so the PDF renders Arabic correctly."
             )
 
-with tab4:
-    st.subheader("Layout Tuner (No code)")
-    st.caption("Change values, save, then generate a PDF to test alignment.")
+# with tab4:
+#     st.subheader("Layout Tuner (No code)")
+#     st.caption("Change values, save, then generate a PDF to test alignment.")
 
-    layout = _load_layout_dict()
-    col1, col2 = st.columns(2)
-    with col1:
-        layout["grid_x_mm"] = st.number_input("grid_x_mm", value=float(layout["grid_x_mm"]), step=0.1)
-        layout["grid_y_mm"] = st.number_input("grid_y_mm", value=float(layout["grid_y_mm"]), step=0.1)
-        layout["card_w_mm"] = st.number_input("card_w_mm", value=float(layout["card_w_mm"]), step=0.1)
-        layout["card_h_mm"] = st.number_input("card_h_mm", value=float(layout["card_h_mm"]), step=0.1)
-        layout["dish_x_offset_mm"] = st.number_input(
-            "dish_x_offset_mm", value=float(layout["dish_x_offset_mm"]), step=0.1
-        )
-        layout["dish_en_y_mm"] = st.number_input("dish_en_y_mm", value=float(layout["dish_en_y_mm"]), step=0.1)
-        layout["dish_ar_gap_mm"] = st.number_input("dish_ar_gap_mm", value=float(layout["dish_ar_gap_mm"]), step=0.1)
-        layout["dish_en_size"] = st.number_input("dish_en_size", value=float(layout["dish_en_size"]), step=0.1)
-        layout["dish_ar_size"] = st.number_input("dish_ar_size", value=float(layout["dish_ar_size"]), step=0.1)
-    with col2:
-        layout["icon_x_offset_mm"] = st.number_input("icon_x_offset_mm", value=float(layout["icon_x_offset_mm"]), step=0.1)
-        layout["icon_y_offset_mm"] = st.number_input("icon_y_offset_mm", value=float(layout["icon_y_offset_mm"]), step=0.1)
-        layout["icon_size_mm"] = st.number_input("icon_size_mm", value=float(layout["icon_size_mm"]), step=0.1)
-        layout["icon_gap_mm"] = st.number_input("icon_gap_mm", value=float(layout["icon_gap_mm"]), step=0.1)
-        layout["macro_x_offset_mm"] = st.number_input(
-            "macro_x_offset_mm", value=float(layout["macro_x_offset_mm"]), step=0.1
-        )
-        layout["macro_y_top_mm"] = st.number_input("macro_y_top_mm", value=float(layout["macro_y_top_mm"]), step=0.1)
-        layout["macro_line_gap_mm"] = st.number_input(
-            "macro_line_gap_mm", value=float(layout["macro_line_gap_mm"]), step=0.1
-        )
-        layout["macro_size"] = st.number_input("macro_size", value=float(layout["macro_size"]), step=0.1)
-        layout["draw_grid_lines"] = st.checkbox("draw_grid_lines", value=bool(layout["draw_grid_lines"]))
+#     layout = _load_layout_dict()
+#     col1, col2 = st.columns(2)
+#     with col1:
+#         layout["grid_x_mm"] = st.number_input("grid_x_mm", value=float(layout["grid_x_mm"]), step=0.1)
+#         layout["grid_y_mm"] = st.number_input("grid_y_mm", value=float(layout["grid_y_mm"]), step=0.1)
+#         layout["card_w_mm"] = st.number_input("card_w_mm", value=float(layout["card_w_mm"]), step=0.1)
+#         layout["card_h_mm"] = st.number_input("card_h_mm", value=float(layout["card_h_mm"]), step=0.1)
+#         layout["dish_x_offset_mm"] = st.number_input(
+#             "dish_x_offset_mm", value=float(layout["dish_x_offset_mm"]), step=0.1
+#         )
+#         layout["dish_box_width_mm"] = st.number_input(
+#             "dish_box_width_mm", value=float(layout["dish_box_width_mm"]), step=0.1
+#         )
+#         layout["dish_en_y_mm"] = st.number_input("dish_en_y_mm", value=float(layout["dish_en_y_mm"]), step=0.1)
+#         layout["dish_ar_gap_mm"] = st.number_input("dish_ar_gap_mm", value=float(layout["dish_ar_gap_mm"]), step=0.1)
+#         layout["dish_en_size"] = st.number_input("dish_en_size", value=float(layout["dish_en_size"]), step=0.1)
+#         layout["dish_ar_size"] = st.number_input("dish_ar_size", value=float(layout["dish_ar_size"]), step=0.1)
+#     with col2:
+#         layout["icon_x_offset_mm"] = st.number_input("icon_x_offset_mm", value=float(layout["icon_x_offset_mm"]), step=0.1)
+#         layout["icon_y_offset_mm"] = st.number_input("icon_y_offset_mm", value=float(layout["icon_y_offset_mm"]), step=0.1)
+#         layout["icon_size_mm"] = st.number_input("icon_size_mm", value=float(layout["icon_size_mm"]), step=0.1)
+#         layout["icon_gap_mm"] = st.number_input("icon_gap_mm", value=float(layout["icon_gap_mm"]), step=0.1)
+#         layout["macro_x_offset_mm"] = st.number_input(
+#             "macro_x_offset_mm", value=float(layout["macro_x_offset_mm"]), step=0.1
+#         )
+#         layout["macro_y_top_mm"] = st.number_input("macro_y_top_mm", value=float(layout["macro_y_top_mm"]), step=0.1)
+#         layout["macro_line_gap_mm"] = st.number_input(
+#             "macro_line_gap_mm", value=float(layout["macro_line_gap_mm"]), step=0.1
+#         )
+#         layout["macro_size"] = st.number_input("macro_size", value=float(layout["macro_size"]), step=0.1)
+#         layout["draw_grid_lines"] = st.checkbox("draw_grid_lines", value=bool(layout["draw_grid_lines"]))
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Save Layout", type="primary"):
-            LAYOUT_JSON.write_text(json.dumps(layout, indent=2), encoding="utf-8")
-            st.success(f"Saved: {LAYOUT_JSON}")
-            st.rerun()
-    with c2:
-        if st.button("Reset Layout"):
-            LAYOUT_JSON.write_text(json.dumps(default_layout_dict(), indent=2), encoding="utf-8")
-            st.success("Layout reset to defaults.")
-            st.rerun()
+#     c1, c2 = st.columns(2)
+#     with c1:
+#         if st.button("Save Layout", type="primary"):
+#             LAYOUT_JSON.write_text(json.dumps(layout, indent=2), encoding="utf-8")
+#             st.success(f"Saved: {LAYOUT_JSON}")
+#             st.rerun()
+#     with c2:
+#         if st.button("Reset Layout"):
+#             LAYOUT_JSON.write_text(json.dumps(default_layout_dict(), indent=2), encoding="utf-8")
+#             st.success("Layout reset to defaults.")
+#             st.rerun()

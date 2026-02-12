@@ -111,7 +111,9 @@ class AssetPaths:
     template_page: Optional[Path] = None
     # Optional fonts (TTF)
     font_latin: Optional[Path] = None
+    font_latin_bold: Optional[Path] = None
     font_arabic: Optional[Path] = None
+    font_arabic_bold: Optional[Path] = None
 
 
 @dataclass(frozen=True)
@@ -135,10 +137,11 @@ class LayoutConfig:
     draw_grid_lines: bool = True
     draw_logo: bool = False
     dish_x_offset_mm: float = 0.0
+    dish_box_width_mm: float = 51.752
     dish_en_y_mm: float = 53.5
     dish_ar_gap_mm: float = 8.6
-    dish_en_size: float = 12.5
-    dish_ar_size: float = 11.5
+    dish_en_size: float = 14.0
+    dish_ar_size: float = 13.0
     icon_x_offset_mm: float = 4.9
     icon_y_offset_mm: float = 27.6
     icon_size_mm: float = 11.938
@@ -146,7 +149,7 @@ class LayoutConfig:
     macro_x_offset_mm: float = 49.6
     macro_y_top_mm: float = 48.0
     macro_line_gap_mm: float = 5.9
-    macro_size: float = 9.0
+    macro_size: float = 10.5
 
 
 def default_layout_dict() -> Dict[str, object]:
@@ -171,23 +174,37 @@ def load_layout_config(path: Optional[Path]) -> LayoutConfig:
         return LayoutConfig()
 
 
-def _register_fonts(assets: AssetPaths) -> Tuple[str, str]:
+def _register_fonts(assets: AssetPaths) -> Tuple[str, str, str, str]:
     """
     Register TTF fonts if provided.
-    Returns (latin_font_name, arabic_font_name).
+    Returns (latin_regular, latin_bold, arabic_regular, arabic_bold).
     """
-    latin_name = "Helvetica"
-    arabic_name = "Helvetica"
+    latin_regular = "Times-Roman"
+    latin_bold = "Times-Bold"
+    arabic_regular = latin_regular
+    arabic_bold = latin_bold
 
     if assets.font_latin and assets.font_latin.exists():
-        latin_name = "LaylaLatin"
-        pdfmetrics.registerFont(TTFont(latin_name, str(assets.font_latin)))
+        latin_regular = "LaylaLatinRegular"
+        pdfmetrics.registerFont(TTFont(latin_regular, str(assets.font_latin)))
+
+    if assets.font_latin_bold and assets.font_latin_bold.exists():
+        latin_bold = "LaylaLatinBold"
+        pdfmetrics.registerFont(TTFont(latin_bold, str(assets.font_latin_bold)))
+    elif assets.font_latin and assets.font_latin.exists():
+        latin_bold = latin_regular
 
     if assets.font_arabic and assets.font_arabic.exists():
-        arabic_name = "LaylaArabic"
-        pdfmetrics.registerFont(TTFont(arabic_name, str(assets.font_arabic)))
+        arabic_regular = "LaylaArabicRegular"
+        pdfmetrics.registerFont(TTFont(arabic_regular, str(assets.font_arabic)))
 
-    return latin_name, arabic_name
+    if assets.font_arabic_bold and assets.font_arabic_bold.exists():
+        arabic_bold = "LaylaArabicBold"
+        pdfmetrics.registerFont(TTFont(arabic_bold, str(assets.font_arabic_bold)))
+    elif assets.font_arabic and assets.font_arabic.exists():
+        arabic_bold = arabic_regular
+
+    return latin_regular, latin_bold, arabic_regular, arabic_bold
 
 
 def _load_layout_json(path: Optional[Path]) -> Optional[dict]:
@@ -226,7 +243,7 @@ def _draw_docx_shape_overlay(c: canvas.Canvas, layout_data: dict, page_w: float,
     c.setStrokeColor(colors.Color(0.20, 0.55, 0.95))
     c.setLineWidth(0.5)
     c.setDash(2, 2)
-    c.setFont("Helvetica", 6.5)
+    c.setFont("Times-Roman", 6.5)
 
     drawn = 0
     for shape in drawings:
@@ -308,7 +325,7 @@ def _draw_debug_overlay(
         c.line(grid_x + card_w, grid_y, grid_x + card_w, grid_y + grid_h)
         c.line(grid_x, grid_y + card_h, grid_x + grid_w, grid_y + card_h)
         c.line(grid_x, grid_y + 2 * card_h, grid_x + grid_w, grid_y + 2 * card_h)
-        c.setFont("Helvetica", 7)
+        c.setFont("Times-Roman", 7)
         c.drawString(grid_x + 2, page_h - grid_y + 4, "debug:grid")
     c.restoreState()
 
@@ -323,6 +340,22 @@ def _icon_triplet(d: Dish, assets: AssetPaths) -> List[Path]:
     protein_icon = assets.icon_veg if d.protein_type == "veg" else assets.icon_meat
     dairy_icon = assets.icon_dairy_free if d.dairy == "dairy_free" else assets.icon_dairy
     return [gluten_icon, protein_icon, dairy_icon]
+
+
+def _draw_centered_text(
+    c: canvas.Canvas,
+    text: str,
+    font_name: str,
+    font_size: float,
+    center_x: float,
+    y: float,
+) -> None:
+    if not text:
+        return
+    c.setFont(font_name, font_size)
+    text_w = pdfmetrics.stringWidth(text, font_name, font_size)
+    x = center_x - (text_w / 2.0)
+    c.drawString(x, y, text)
 
 
 def generate_cards_pdf(
@@ -344,7 +377,7 @@ def generate_cards_pdf(
     c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
     c.setTitle(title)
 
-    latin_font, arabic_font = _register_fonts(assets)
+    latin_font_regular, latin_font_bold, arabic_font_regular, arabic_font_bold = _register_fonts(assets)
 
     layout = layout_config or LayoutConfig()
 
@@ -462,17 +495,31 @@ def generate_cards_pdf(
 
                 # Dish name EN (bold)
                 c.setFillColor(colors.black)
-                c.setFont(latin_font, dish_en_size)
-                c.drawString(x0 + dish_x_offset + pad_x, y0 + dish_en_y, d.name_en)
+                center_x = x0 + dish_x_offset + (layout.dish_box_width_mm * mm / 2.0)
+                _draw_centered_text(
+                    c=c,
+                    text=d.name_en,
+                    font_name=latin_font_bold,
+                    font_size=dish_en_size,
+                    center_x=center_x,
+                    y=y0 + dish_en_y,
+                )
 
                 # Dish name AR (under EN, left side)
-                c.setFont(arabic_font, dish_ar_size)
                 ar_text = _try_arabic_shape(d.name_ar) if d.name_ar else ""
-                c.drawString(x0 + dish_x_offset + pad_x, y0 + dish_ar_y, ar_text)
+                _draw_centered_text(
+                    c=c,
+                    text=ar_text,
+                    font_name=arabic_font_bold,
+                    font_size=dish_ar_size,
+                    center_x=center_x,
+                    y=y0 + dish_ar_y,
+                )
 
                 # Icons (left bottom-ish)
                 icons = _icon_triplet(d, assets)
-                ix = x0 + icon_x_offset
+                icon_group_w = (len(icons) * icon_size) + (max(0, len(icons) - 1) * icon_gap)
+                ix = center_x - (icon_group_w / 2.0)
                 iy = y0 + icon_y_offset
                 for p in icons:
                     try:
@@ -491,7 +538,7 @@ def generate_cards_pdf(
                     ix += icon_size + icon_gap
 
                 # Macros (right side list)
-                c.setFont(latin_font, macro_size)
+                c.setFont(latin_font_regular, macro_size)
 
                 def macro_line(label: str, value: str, n: int):
                     c.drawString(
