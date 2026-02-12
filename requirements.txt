@@ -1,0 +1,7 @@
+streamlit
+pandas
+reportlab
+pillow
+certifi
+arabic-reshaper
+python-bidi
