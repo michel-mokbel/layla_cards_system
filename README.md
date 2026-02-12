@@ -37,6 +37,12 @@ Put the font file in:
 
 The app will auto-pick the first `.ttf` it finds in `assets/fonts/`.
 
+## 3.1) Base template page (optional, recommended)
+If your print template already includes borders/logo, add:
+- `assets/template_page.png`
+
+When this file exists, the generator uses it as full-page background and does not draw card grid lines/logo on top.
+
 ## 4) Dish database schema
 `data/dishes.csv` columns:
 - `name_en`
@@ -92,6 +98,26 @@ Set:
 
 Optional (for OpenAI-compatible endpoints):
 - `OPENAI_BASE_URL` (defaults to `https://api.openai.com`)
+
+## 7) Template alignment workflow (DOCX -> JSON -> debug overlay)
+Use the script below to dump Word layout coordinates (shapes/text/images):
+
+```bash
+python tools/dump_docx_layout.py \
+  --docx "/absolute/path/to/template.docx" \
+  --out "out/docx_layout.json"
+```
+
+Then generate a debug PDF by passing `DebugOverlayOptions` to `generate_cards_pdf(...)` in `cards.py`:
+- `show_grid=True` for card/page guides
+- `show_docx_shapes=True` + `docx_layout_json=...` for DOCX shape boxes
+- `reference_image=...` (optional PNG/JPG page export from your template PDF)
+
+## 8) No-code layout tuning in app
+Use the **Layout Tuner** tab in Streamlit to adjust coordinates/sizes without editing code.
+- Values are saved to `data/layout_config.json`
+- `Generate PDF` automatically uses this config
+- Use small increments (0.1 mm) and iterate
 
 ---
 If you have your exact **blank template background** (the empty page with only the logo), we can also switch to a “background image” mode so the PDF matches your paper pixel-perfect.

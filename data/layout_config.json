@@ -1,0 +1,23 @@
+{
+  "cols": 2,
+  "rows": 3,
+  "grid_x_mm": 7.2,
+  "grid_y_mm": 26.0,
+  "card_w_mm": 98.8,
+  "card_h_mm": 79.2,
+  "draw_grid_lines": true,
+  "draw_logo": false,
+  "dish_x_offset_mm": 0.0,
+  "dish_en_y_mm": 53.5,
+  "dish_ar_gap_mm": 8.6,
+  "dish_en_size": 12.5,
+  "dish_ar_size": 11.5,
+  "icon_x_offset_mm": 4.9,
+  "icon_y_offset_mm": 27.6,
+  "icon_size_mm": 11.938,
+  "icon_gap_mm": 4.49,
+  "macro_x_offset_mm": 49.6,
+  "macro_y_top_mm": 48.0,
+  "macro_line_gap_mm": 5.9,
+  "macro_size": 9.0
+}

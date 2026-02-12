@@ -8,19 +8,30 @@ Run:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from cards import AssetPaths, Dish, generate_cards_pdf, load_dishes_csv
+from cards import (
+    AssetPaths,
+    Dish,
+    LayoutConfig,
+    default_layout_dict,
+    generate_cards_pdf,
+    load_dishes_csv,
+    load_layout_config,
+)
 from enrich import enrich_dish_name, openai_configured, openrouter_configured
 
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_CSV = BASE_DIR / "data" / "dishes.csv"
+LAYOUT_JSON = BASE_DIR / "data" / "layout_config.json"
 ASSETS_DIR = BASE_DIR / "assets"
 ICONS_DIR = ASSETS_DIR / "icons"
 FONTS_DIR = ASSETS_DIR / "fonts"
+TEMPLATE_PAGE = ASSETS_DIR / "template_page.png"
 
 OUT_DIR = BASE_DIR / "out"
 OUT_DIR.mkdir(exist_ok=True)
@@ -65,6 +76,20 @@ def _pick_arabic_font() -> Path | None:
     ttf = sorted(FONTS_DIR.glob("*.ttf"))
     return ttf[0] if ttf else None
 
+
+def _load_layout_dict() -> dict:
+    base = default_layout_dict()
+    if not LAYOUT_JSON.exists():
+        return base
+    try:
+        user_data = json.loads(LAYOUT_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        return base
+    if not isinstance(user_data, dict):
+        return base
+    return {**base, **{k: v for k, v in user_data.items() if k in base}}
+
+
 # Assets
 default_arabic_font = _pick_arabic_font()
 assets = AssetPaths(
@@ -75,11 +100,16 @@ assets = AssetPaths(
     icon_meat=ICONS_DIR / "meat.png",
     icon_dairy=ICONS_DIR / "dairy.png",
     icon_dairy_free=ICONS_DIR / "dairy_free.png",
+    template_page=TEMPLATE_PAGE if TEMPLATE_PAGE.exists() else None,
     # Auto-pick first TTF in assets/fonts/ if present (fixes Arabic "boxes" issue)
     font_arabic=default_arabic_font,
 )
 
-tab1, tab2, tab3 = st.tabs(["Generate PDF", "Dish Database", "Add Dish (Auto-fill)"])
+layout_cfg = load_layout_config(LAYOUT_JSON)
+
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Generate PDF", "Dish Database", "Add Dish (Auto-fill)", "Layout Tuner"]
+)
 
 with tab1:
     st.subheader("1) Choose dishes (up to 6 per page)")
@@ -100,13 +130,21 @@ with tab1:
         if st.button("Generate PDF", type="primary", disabled=(len(selected) == 0)):
             dishes = [db[n.lower()] for n in selected if n.lower() in db]
             out_path = OUT_DIR / filename
-            generate_cards_pdf(dishes=dishes, out_pdf_path=out_path, assets=assets)
+            generate_cards_pdf(dishes=dishes, out_pdf_path=out_path, assets=assets, layout_config=layout_cfg)
+            pdf_bytes = out_path.read_bytes()
+            st.session_state["generated_pdf_bytes"] = pdf_bytes
+            st.session_state["generated_pdf_name"] = out_path.name
             st.success("PDF generated.")
+
+        pdf_bytes = st.session_state.get("generated_pdf_bytes")
+        pdf_name = st.session_state.get("generated_pdf_name", "layla_cards.pdf")
+        if pdf_bytes:
             st.download_button(
                 "Download PDF",
-                data=out_path.read_bytes(),
-                file_name=out_path.name,
+                data=pdf_bytes,
+                file_name=pdf_name,
                 mime="application/pdf",
+                use_container_width=True,
             )
 
 with tab2:
@@ -234,3 +272,48 @@ with tab3:
             st.caption(
                 "Tip: put an Arabic TTF in assets/fonts/ so the PDF renders Arabic correctly."
             )
+
+with tab4:
+    st.subheader("Layout Tuner (No code)")
+    st.caption("Change values, save, then generate a PDF to test alignment.")
+
+    layout = _load_layout_dict()
+    col1, col2 = st.columns(2)
+    with col1:
+        layout["grid_x_mm"] = st.number_input("grid_x_mm", value=float(layout["grid_x_mm"]), step=0.1)
+        layout["grid_y_mm"] = st.number_input("grid_y_mm", value=float(layout["grid_y_mm"]), step=0.1)
+        layout["card_w_mm"] = st.number_input("card_w_mm", value=float(layout["card_w_mm"]), step=0.1)
+        layout["card_h_mm"] = st.number_input("card_h_mm", value=float(layout["card_h_mm"]), step=0.1)
+        layout["dish_x_offset_mm"] = st.number_input(
+            "dish_x_offset_mm", value=float(layout["dish_x_offset_mm"]), step=0.1
+        )
+        layout["dish_en_y_mm"] = st.number_input("dish_en_y_mm", value=float(layout["dish_en_y_mm"]), step=0.1)
+        layout["dish_ar_gap_mm"] = st.number_input("dish_ar_gap_mm", value=float(layout["dish_ar_gap_mm"]), step=0.1)
+        layout["dish_en_size"] = st.number_input("dish_en_size", value=float(layout["dish_en_size"]), step=0.1)
+        layout["dish_ar_size"] = st.number_input("dish_ar_size", value=float(layout["dish_ar_size"]), step=0.1)
+    with col2:
+        layout["icon_x_offset_mm"] = st.number_input("icon_x_offset_mm", value=float(layout["icon_x_offset_mm"]), step=0.1)
+        layout["icon_y_offset_mm"] = st.number_input("icon_y_offset_mm", value=float(layout["icon_y_offset_mm"]), step=0.1)
+        layout["icon_size_mm"] = st.number_input("icon_size_mm", value=float(layout["icon_size_mm"]), step=0.1)
+        layout["icon_gap_mm"] = st.number_input("icon_gap_mm", value=float(layout["icon_gap_mm"]), step=0.1)
+        layout["macro_x_offset_mm"] = st.number_input(
+            "macro_x_offset_mm", value=float(layout["macro_x_offset_mm"]), step=0.1
+        )
+        layout["macro_y_top_mm"] = st.number_input("macro_y_top_mm", value=float(layout["macro_y_top_mm"]), step=0.1)
+        layout["macro_line_gap_mm"] = st.number_input(
+            "macro_line_gap_mm", value=float(layout["macro_line_gap_mm"]), step=0.1
+        )
+        layout["macro_size"] = st.number_input("macro_size", value=float(layout["macro_size"]), step=0.1)
+        layout["draw_grid_lines"] = st.checkbox("draw_grid_lines", value=bool(layout["draw_grid_lines"]))
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Save Layout", type="primary"):
+            LAYOUT_JSON.write_text(json.dumps(layout, indent=2), encoding="utf-8")
+            st.success(f"Saved: {LAYOUT_JSON}")
+            st.rerun()
+    with c2:
+        if st.button("Reset Layout"):
+            LAYOUT_JSON.write_text(json.dumps(default_layout_dict(), indent=2), encoding="utf-8")
+            st.success("Layout reset to defaults.")
+            st.rerun()

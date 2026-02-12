@@ -13,7 +13,8 @@ You can wire this into any UI (Streamlit, Flask, CLI, Google Sheets export, etc.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -107,9 +108,67 @@ class AssetPaths:
     icon_meat: Path
     icon_dairy: Path
     icon_dairy_free: Path
+    template_page: Optional[Path] = None
     # Optional fonts (TTF)
     font_latin: Optional[Path] = None
     font_arabic: Optional[Path] = None
+
+
+@dataclass(frozen=True)
+class DebugOverlayOptions:
+    enabled: bool = False
+    show_grid: bool = True
+    show_docx_shapes: bool = False
+    docx_layout_json: Optional[Path] = None
+    reference_image: Optional[Path] = None
+    limit_shapes: int = 250
+
+
+@dataclass(frozen=True)
+class LayoutConfig:
+    cols: int = 2
+    rows: int = 3
+    grid_x_mm: float = 7.2
+    grid_y_mm: float = 26.0
+    card_w_mm: float = 98.8
+    card_h_mm: float = 79.2
+    draw_grid_lines: bool = True
+    draw_logo: bool = False
+    dish_x_offset_mm: float = 0.0
+    dish_en_y_mm: float = 53.5
+    dish_ar_gap_mm: float = 8.6
+    dish_en_size: float = 12.5
+    dish_ar_size: float = 11.5
+    icon_x_offset_mm: float = 4.9
+    icon_y_offset_mm: float = 27.6
+    icon_size_mm: float = 11.938
+    icon_gap_mm: float = 4.49
+    macro_x_offset_mm: float = 49.6
+    macro_y_top_mm: float = 48.0
+    macro_line_gap_mm: float = 5.9
+    macro_size: float = 9.0
+
+
+def default_layout_dict() -> Dict[str, object]:
+    return asdict(LayoutConfig())
+
+
+def load_layout_config(path: Optional[Path]) -> LayoutConfig:
+    if not path or (not path.exists()):
+        return LayoutConfig()
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return LayoutConfig()
+    if not isinstance(raw, dict):
+        return LayoutConfig()
+
+    base = asdict(LayoutConfig())
+    merged = {**base, **{k: v for k, v in raw.items() if k in base}}
+    try:
+        return LayoutConfig(**merged)
+    except Exception:
+        return LayoutConfig()
 
 
 def _register_fonts(assets: AssetPaths) -> Tuple[str, str]:
@@ -131,6 +190,132 @@ def _register_fonts(assets: AssetPaths) -> Tuple[str, str]:
     return latin_name, arabic_name
 
 
+def _load_layout_json(path: Optional[Path]) -> Optional[dict]:
+    if path is None:
+        return None
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _draw_docx_shape_overlay(c: canvas.Canvas, layout_data: dict, page_w: float, page_h: float, limit: int) -> None:
+    parts = layout_data.get("parts", [])
+    if not isinstance(parts, list):
+        return
+    doc_part = next((p for p in parts if p.get("part") == "word/document.xml"), None)
+    if not doc_part:
+        return
+    drawings = doc_part.get("drawings", [])
+    if not isinstance(drawings, list):
+        return
+
+    # Fall back to Word defaults (1 inch margins) if missing.
+    margin_left_mm = 25.4
+    margin_top_mm = 25.4
+    sections = doc_part.get("sections", [])
+    if isinstance(sections, list) and sections:
+        margins = sections[0].get("margins_mm", {})
+        if isinstance(margins, dict):
+            margin_left_mm = float(margins.get("left") or margin_left_mm)
+            margin_top_mm = float(margins.get("top") or margin_top_mm)
+
+    c.saveState()
+    c.setStrokeColor(colors.Color(0.20, 0.55, 0.95))
+    c.setLineWidth(0.5)
+    c.setDash(2, 2)
+    c.setFont("Helvetica", 6.5)
+
+    drawn = 0
+    for shape in drawings:
+        if drawn >= limit:
+            break
+        if not isinstance(shape, dict):
+            continue
+        pos = shape.get("position", {})
+        extent = shape.get("extent_mm", {})
+        if not isinstance(pos, dict) or not isinstance(extent, dict):
+            continue
+
+        rel_h = pos.get("horizontal_relative_from")
+        rel_v = pos.get("vertical_relative_from")
+        x_off_mm = pos.get("horizontal_offset_mm")
+        y_off_mm = pos.get("vertical_offset_mm")
+        w_mm = extent.get("w")
+        h_mm = extent.get("h")
+
+        if None in (x_off_mm, y_off_mm, w_mm, h_mm):
+            continue
+        if rel_h not in {"margin", "page"}:
+            continue
+        if rel_v not in {"margin", "page", "paragraph"}:
+            continue
+
+        x_mm = float(x_off_mm) + (0.0 if rel_h == "page" else margin_left_mm)
+        y_top_mm = float(y_off_mm) + (0.0 if rel_v == "page" else margin_top_mm)
+        w_pt = float(w_mm) * mm
+        h_pt = float(h_mm) * mm
+        x_pt = x_mm * mm
+        y_pt = page_h - ((y_top_mm * mm) + h_pt)
+
+        c.rect(x_pt, y_pt, w_pt, h_pt, stroke=1, fill=0)
+        name = ((shape.get("doc_pr") or {}).get("name") if isinstance(shape.get("doc_pr"), dict) else "") or ""
+        if name:
+            c.drawString(x_pt + 1.5, y_pt + h_pt + 1.5, str(name)[:40])
+        drawn += 1
+
+    c.restoreState()
+
+
+def _draw_debug_overlay(
+    c: canvas.Canvas,
+    page_w: float,
+    page_h: float,
+    grid_x: float,
+    grid_y: float,
+    grid_w: float,
+    grid_h: float,
+    card_w: float,
+    card_h: float,
+    opts: Optional[DebugOverlayOptions],
+    layout_data: Optional[dict],
+) -> None:
+    if not opts or not opts.enabled:
+        return
+
+    if opts.reference_image and opts.reference_image.exists():
+        try:
+            c.drawImage(
+                ImageReader(str(opts.reference_image)),
+                0,
+                0,
+                width=page_w,
+                height=page_h,
+                mask="auto",
+                preserveAspectRatio=False,
+            )
+        except Exception:
+            pass
+
+    c.saveState()
+    if opts.show_grid:
+        c.setStrokeColor(colors.Color(0.93, 0.20, 0.20))
+        c.setLineWidth(0.7)
+        c.setDash(4, 2)
+        c.rect(grid_x, grid_y, grid_w, grid_h, stroke=1, fill=0)
+        c.line(grid_x + card_w, grid_y, grid_x + card_w, grid_y + grid_h)
+        c.line(grid_x, grid_y + card_h, grid_x + grid_w, grid_y + card_h)
+        c.line(grid_x, grid_y + 2 * card_h, grid_x + grid_w, grid_y + 2 * card_h)
+        c.setFont("Helvetica", 7)
+        c.drawString(grid_x + 2, page_h - grid_y + 4, "debug:grid")
+    c.restoreState()
+
+    if opts.show_docx_shapes and layout_data:
+        _draw_docx_shape_overlay(c, layout_data, page_w, page_h, opts.limit_shapes)
+
+
 def _icon_triplet(d: Dish, assets: AssetPaths) -> List[Path]:
     # Fixed 3-icons layout to match your paper:
     # [gluten/gluten-free] [veg/meat] [dairy/dairy-free]
@@ -145,6 +330,9 @@ def generate_cards_pdf(
     out_pdf_path: str | Path,
     assets: AssetPaths,
     title: str = "Layla Cards",
+    draw_logo: bool = False,
+    debug_overlay: Optional[DebugOverlayOptions] = None,
+    layout_config: Optional[LayoutConfig] = None,
 ) -> Path:
     """
     Generate an A4 PDF, 2 columns x 3 rows per page (6 cards).
@@ -158,55 +346,90 @@ def generate_cards_pdf(
 
     latin_font, arabic_font = _register_fonts(assets)
 
-    # Layout (tweakable)
-    margin = 12 * mm
-    grid_w = page_w - 2 * margin
-    grid_h = page_h - 2 * margin
+    layout = layout_config or LayoutConfig()
 
-    cols, rows = 2, 3
-    card_w = grid_w / cols
-    card_h = grid_h / rows
+    cols, rows = layout.cols, layout.rows
+    grid_x = layout.grid_x_mm * mm
+    grid_y = layout.grid_y_mm * mm
+    card_w = layout.card_w_mm * mm
+    card_h = layout.card_h_mm * mm
+    grid_w = card_w * cols
+    grid_h = card_h * rows
 
     # Styling
     border_color = colors.Color(0.85, 0.85, 0.85)
     border_width = 0.6
+    draw_grid_lines = layout.draw_grid_lines and (assets.template_page is None)
 
     # Content offsets within card
-    pad_x = 10 * mm
+    pad_x = 0.0 * mm
     pad_top = 8 * mm
     logo_h = 18 * mm
     logo_w = 30 * mm
 
-    icon_size = 12 * mm
-    icon_gap = 4 * mm
+    icon_x_offset = layout.icon_x_offset_mm * mm
+    icon_y_offset = layout.icon_y_offset_mm * mm
+    icon_size = layout.icon_size_mm * mm
+    icon_gap = layout.icon_gap_mm * mm
 
     # Macro column
-    macro_x_offset = card_w * 0.60
-    macro_y_top_offset = card_h * 0.60
-    macro_line_gap = 4.5 * mm
+    macro_x_offset = layout.macro_x_offset_mm * mm
+    macro_y_top_offset = layout.macro_y_top_mm * mm
+    macro_line_gap = layout.macro_line_gap_mm * mm
 
     # Dish text
-    dish_en_y = card_h * 0.58
-    dish_ar_y = dish_en_y - 7.5 * mm
+    dish_x_offset = layout.dish_x_offset_mm * mm
+    dish_en_y = layout.dish_en_y_mm * mm
+    dish_ar_y = dish_en_y - (layout.dish_ar_gap_mm * mm)
 
-    dish_en_size = 12
-    dish_ar_size = 11
-    macro_size = 9.5
+    dish_en_size = layout.dish_en_size
+    dish_ar_size = layout.dish_ar_size
+    macro_size = layout.macro_size
 
     dish_list = list(dishes)
     idx = 0
+    layout_data = _load_layout_json(debug_overlay.docx_layout_json) if debug_overlay else None
 
     while idx < len(dish_list):
+        if assets.template_page and assets.template_page.exists():
+            try:
+                c.drawImage(
+                    ImageReader(str(assets.template_page)),
+                    0,
+                    0,
+                    width=page_w,
+                    height=page_h,
+                    mask="auto",
+                    preserveAspectRatio=False,
+                )
+            except Exception:
+                pass
+
+        _draw_debug_overlay(
+            c=c,
+            page_w=page_w,
+            page_h=page_h,
+            grid_x=grid_x,
+            grid_y=grid_y,
+            grid_w=grid_w,
+            grid_h=grid_h,
+            card_w=card_w,
+            card_h=card_h,
+            opts=debug_overlay,
+            layout_data=layout_data,
+        )
+
         # Grid lines
-        c.setStrokeColor(border_color)
-        c.setLineWidth(border_width)
-        # Outer border
-        c.rect(margin, margin, grid_w, grid_h, stroke=1, fill=0)
-        # Vertical divider
-        c.line(margin + card_w, margin, margin + card_w, margin + grid_h)
-        # Horizontal dividers (2 lines)
-        c.line(margin, margin + card_h, margin + grid_w, margin + card_h)
-        c.line(margin, margin + 2 * card_h, margin + grid_w, margin + 2 * card_h)
+        if draw_grid_lines:
+            c.setStrokeColor(border_color)
+            c.setLineWidth(border_width)
+            # Outer border
+            c.rect(grid_x, grid_y, grid_w, grid_h, stroke=1, fill=0)
+            # Vertical divider
+            c.line(grid_x + card_w, grid_y, grid_x + card_w, grid_y + grid_h)
+            # Horizontal dividers (2 lines)
+            c.line(grid_x, grid_y + card_h, grid_x + grid_w, grid_y + card_h)
+            c.line(grid_x, grid_y + 2 * card_h, grid_x + grid_w, grid_y + 2 * card_h)
 
         # Draw up to 6 cards
         for r in range(rows):
@@ -217,38 +440,40 @@ def generate_cards_pdf(
                 idx += 1
 
                 # Card origin (bottom-left)
-                x0 = margin + col * card_w
-                y0 = margin + (rows - 1 - r) * card_h
+                x0 = grid_x + col * card_w
+                y0 = grid_y + (rows - 1 - r) * card_h
 
                 # Logo (top center)
-                try:
-                    c.drawImage(
-                        ImageReader(str(assets.logo)),
-                        x0 + (card_w - logo_w) / 2,
-                        y0 + card_h - pad_top - logo_h,
-                        width=logo_w,
-                        height=logo_h,
-                        mask="auto",
-                        preserveAspectRatio=True,
-                        anchor="c",
-                    )
-                except Exception:
-                    pass
+                should_draw_logo = (draw_logo or layout.draw_logo) and (not assets.template_page)
+                if should_draw_logo:
+                    try:
+                        c.drawImage(
+                            ImageReader(str(assets.logo)),
+                            x0 + (card_w - logo_w) / 2,
+                            y0 + card_h - pad_top - logo_h,
+                            width=logo_w,
+                            height=logo_h,
+                            mask="auto",
+                            preserveAspectRatio=True,
+                            anchor="c",
+                        )
+                    except Exception:
+                        pass
 
                 # Dish name EN (bold)
                 c.setFillColor(colors.black)
                 c.setFont(latin_font, dish_en_size)
-                c.drawString(x0 + pad_x, y0 + dish_en_y, d.name_en)
+                c.drawString(x0 + dish_x_offset + pad_x, y0 + dish_en_y, d.name_en)
 
                 # Dish name AR (under EN, left side)
                 c.setFont(arabic_font, dish_ar_size)
                 ar_text = _try_arabic_shape(d.name_ar) if d.name_ar else ""
-                c.drawString(x0 + pad_x, y0 + dish_ar_y, ar_text)
+                c.drawString(x0 + dish_x_offset + pad_x, y0 + dish_ar_y, ar_text)
 
                 # Icons (left bottom-ish)
                 icons = _icon_triplet(d, assets)
-                ix = x0 + pad_x
-                iy = y0 + 14 * mm
+                ix = x0 + icon_x_offset
+                iy = y0 + icon_y_offset
                 for p in icons:
                     try:
                         c.drawImage(

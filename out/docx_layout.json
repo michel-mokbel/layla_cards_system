@@ -1,0 +1,2808 @@
+{
+  "docx_path": "/Users/mohamadsafar/Desktop/Layla Kitchen/Jobs/Microsoft/Layla Kitchen - Updated Card copy.docx",
+  "parts": [
+    {
+      "part": "word/document.xml",
+      "sections": [
+        {
+          "page_size_twip": {
+            "w": "11906",
+            "h": "16838"
+          },
+          "page_size_mm": {
+            "w": 210.009,
+            "h": 297.004
+          },
+          "margins_twip": {
+            "top": "1440",
+            "right": "1440",
+            "bottom": "1440",
+            "left": "1440"
+          },
+          "margins_mm": {
+            "top": 25.4,
+            "right": 25.4,
+            "bottom": 25.4,
+            "left": 25.4
+          }
+        }
+      ],
+      "drawings": [
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "1921940423",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1612900",
+            "cy": "546735"
+          },
+          "extent_mm": {
+            "w": 44.803,
+            "h": 15.187
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "3037282",
+            "horizontal_offset_mm": 84.369,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "7322185",
+            "vertical_offset_mm": 203.394
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            },
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            },
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251926528",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "69BA164D",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "22F67DD6"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "13367537",
+            "name": "Picture 13367537",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "5120F285",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "7804C017"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "606820812",
+            "name": "Picture 606820812",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "694A2225",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5C0CE5F1"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "46187724",
+            "name": "Picture 46187724",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "75DE3C18",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "69B453FC"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "13367537",
+            "name": "Picture 13367537",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "5120F285",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "7804C017"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "606820812",
+            "name": "Picture 606820812",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "694A2225",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5C0CE5F1"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "46187724",
+            "name": "Picture 46187724",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "75DE3C18",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "69B453FC"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "1172747988",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1612900",
+            "cy": "546735"
+          },
+          "extent_mm": {
+            "w": 44.803,
+            "h": 15.187
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "3032256",
+            "horizontal_offset_mm": 84.229,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "4534535",
+            "vertical_offset_mm": 125.959
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [
+            {
+              "rel_id": "rId10",
+              "target": "media/image4.png"
+            },
+            {
+              "rel_id": "rId11",
+              "target": "media/image5.png"
+            },
+            {
+              "rel_id": "rId12",
+              "target": "media/image6.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251920384",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "654649DD",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "548C9C4B"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1982832854",
+            "name": "Picture 1982832854",
+            "descr": "A black circle with a wheat ear in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId10",
+              "target": "media/image4.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "5E03D62E",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "543C7A00"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "190565011",
+            "name": "Picture 190565011",
+            "descr": "A black circle with a white circle in the middle\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId11",
+              "target": "media/image5.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "2F21434B",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "2A1F604D"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "2085451996",
+            "name": "Picture 2085451996",
+            "descr": "A black background with a black square\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId12",
+              "target": "media/image6.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "10BE2B77",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "6A961E43"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1982832854",
+            "name": "Picture 1982832854",
+            "descr": "A black circle with a wheat ear in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId10",
+              "target": "media/image4.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "5E03D62E",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "543C7A00"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "190565011",
+            "name": "Picture 190565011",
+            "descr": "A black circle with a white circle in the middle\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId11",
+              "target": "media/image5.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "2F21434B",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "2A1F604D"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "2085451996",
+            "name": "Picture 2085451996",
+            "descr": "A black background with a black square\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId12",
+              "target": "media/image6.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "10BE2B77",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "6A961E43"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "480713920",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1612900",
+            "cy": "546735"
+          },
+          "extent_mm": {
+            "w": 44.803,
+            "h": 15.187
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "-477266",
+            "horizontal_offset_mm": -13.257,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "7340727",
+            "vertical_offset_mm": 203.909
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            },
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            },
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251923456",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "3154D080",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "1DCF7D84"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1894045305",
+            "name": "Picture 1894045305",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "1F38B55D",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5D926575"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "847119867",
+            "name": "Picture 847119867",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "544B2DF1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "632E5ABA"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1099598818",
+            "name": "Picture 1099598818",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "045B8C28",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "471C944D"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1894045305",
+            "name": "Picture 1894045305",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "1F38B55D",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5D926575"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "847119867",
+            "name": "Picture 847119867",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "544B2DF1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "632E5ABA"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1099598818",
+            "name": "Picture 1099598818",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "045B8C28",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "471C944D"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "1868212103",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1612900",
+            "cy": "546735"
+          },
+          "extent_mm": {
+            "w": 44.803,
+            "h": 15.187
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "-477266",
+            "horizontal_offset_mm": -13.257,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "4480052",
+            "vertical_offset_mm": 124.446
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            },
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            },
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251917312",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "3C0F0194",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "26BC4F54"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1068914995",
+            "name": "Picture 1068914995",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "49CDB753",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "73FED8FF"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "603356760",
+            "name": "Picture 603356760",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "12D7936B",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "733F2F2F"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "862436085",
+            "name": "Picture 862436085",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "5A020A92",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "1B5C5D7B"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1068914995",
+            "name": "Picture 1068914995",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "49CDB753",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "73FED8FF"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "603356760",
+            "name": "Picture 603356760",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "12D7936B",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "733F2F2F"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "862436085",
+            "name": "Picture 862436085",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "5A020A92",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "1B5C5D7B"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "166829190",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1971040",
+            "cy": "1404620"
+          },
+          "extent_mm": {
+            "w": 54.751,
+            "h": 39.017
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "-660400",
+            "horizontal_offset_mm": -18.344,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "3859530",
+            "vertical_offset_mm": 107.209
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Beetroot Salad سلطة شمندر",
+            "all_text_in_shape": "Beetroot Salad سلطة شمندر"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251916288",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "213C04B6",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "168D80A1"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "269318400",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1863090",
+            "cy": "1404620"
+          },
+          "extent_mm": {
+            "w": 51.752,
+            "h": 39.017
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "2898140",
+            "horizontal_offset_mm": 80.504,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "6717665",
+            "vertical_offset_mm": 186.602
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Almond Chia Energy Bites كرات طاقة باللوز والشيا",
+            "all_text_in_shape": "Almond Chia Energy Bites كرات طاقة باللوز والشيا"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251925504",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "4D8C510B",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "1B0DE173"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "384755186",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1703070",
+            "cy": "1080000"
+          },
+          "extent_mm": {
+            "w": 47.307,
+            "h": 30.0
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "4688205",
+            "horizontal_offset_mm": 130.228,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "6731635",
+            "vertical_offset_mm": 186.99
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Calories: 180 kcal Carbohydrates: 16g Protein: 5g Fat: 11g",
+            "all_text_in_shape": "Calories: 180 kcal Carbohydrates: 16g Protein: 5g Fat: 11g"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251927552",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "7E8EB311",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "43789F84"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "373956317",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1703070",
+            "cy": "1075055"
+          },
+          "extent_mm": {
+            "w": 47.307,
+            "h": 29.863
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "1132205",
+            "horizontal_offset_mm": 31.45,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "6739890",
+            "vertical_offset_mm": 187.219
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Calories: 180 kcal Carbohydrates: 26g Protein: 6g Fat: 10g",
+            "all_text_in_shape": "Calories: 180 kcal Carbohydrates: 26g Protein: 6g Fat: 10g"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251924480",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "058C6D0A",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "773FC330"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "118340359",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1863090",
+            "cy": "1404620"
+          },
+          "extent_mm": {
+            "w": 51.752,
+            "h": 39.017
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "-658368",
+            "horizontal_offset_mm": -18.288,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "6726428",
+            "vertical_offset_mm": 186.845
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Tabbouleh Cup كوب تبولة",
+            "all_text_in_shape": "Tabbouleh Cup كوب تبولة"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251922432",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "64300F3B",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "22C541F2"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "300000903",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1863090",
+            "cy": "1404620"
+          },
+          "extent_mm": {
+            "w": 51.752,
+            "h": 39.017
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "2909570",
+            "horizontal_offset_mm": 80.821,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "3930015",
+            "vertical_offset_mm": 109.167
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Tuna Sandwiches ساندويش تونا",
+            "all_text_in_shape": "Tuna Sandwiches ساندويش تونا"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251919360",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "047FAFE4",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "318B828A"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "1818210890",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1703070",
+            "cy": "1075055"
+          },
+          "extent_mm": {
+            "w": 47.307,
+            "h": 29.863
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "4700778",
+            "horizontal_offset_mm": 130.577,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "3944366",
+            "vertical_offset_mm": 109.566
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Calories: 75 kcal Carbohydrates: 6g Protein: 5g Fat: 3.5g",
+            "all_text_in_shape": "Calories: 75 kcal Carbohydrates: 6g Protein: 5g Fat: 3.5g"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251921408",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "501BB143",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "516C3BF8"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "16773715",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1703070",
+            "cy": "1075055"
+          },
+          "extent_mm": {
+            "w": 47.307,
+            "h": 29.863
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "1132205",
+            "horizontal_offset_mm": 31.45,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "3874770",
+            "vertical_offset_mm": 107.632
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Calories: 120 kcal Carbohydrates: 25g Protein: 3g Fat: 1g",
+            "all_text_in_shape": "Calories: 120 kcal Carbohydrates: 25g Protein: 3g Fat: 1g"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251918336",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "404570C3",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "4303B03F"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "2100465219",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1703070",
+            "cy": "1075055"
+          },
+          "extent_mm": {
+            "w": 47.307,
+            "h": 29.863
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "4693920",
+            "horizontal_offset_mm": 130.387,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "1042670",
+            "vertical_offset_mm": 28.963
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Calories: 65 kcal Carbohydrates: 16g Protein: 1g Fat: 0g",
+            "all_text_in_shape": "Calories: 65 kcal Carbohydrates: 16g Protein: 1g Fat: 0g"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251915264",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "7F8D3EB2",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "68AB1C63"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "2004177731",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1863090",
+            "cy": "1404620"
+          },
+          "extent_mm": {
+            "w": 51.752,
+            "h": 39.017
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "2903220",
+            "horizontal_offset_mm": 80.645,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "1028700",
+            "vertical_offset_mm": 28.575
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Mango Juice عصير مانغا",
+            "all_text_in_shape": "Mango Juice عصير مانغا"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251913216",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "076CE732",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "77EE2BD9"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "315188143",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1612900",
+            "cy": "546735"
+          },
+          "extent_mm": {
+            "w": 44.803,
+            "h": 15.187
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "2966085",
+            "horizontal_offset_mm": 82.391,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "1633220",
+            "vertical_offset_mm": 45.367
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            },
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            },
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251914240",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "07151700",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "4F201585"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1719613833",
+            "name": "Picture 1719613833",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "568B68B8",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "3D3D49BD"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1545966469",
+            "name": "Picture 1545966469",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "7342AAE7",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5FA3588D"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "899693142",
+            "name": "Picture 899693142",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "18890400",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5B6B2141"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1719613833",
+            "name": "Picture 1719613833",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "568B68B8",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "3D3D49BD"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1545966469",
+            "name": "Picture 1545966469",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "7342AAE7",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5FA3588D"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "899693142",
+            "name": "Picture 899693142",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "18890400",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "5B6B2141"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "1017978309",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1703070",
+            "cy": "1569600"
+          },
+          "extent_mm": {
+            "w": 47.307,
+            "h": 43.6
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "1137920",
+            "horizontal_offset_mm": 31.609,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "1076325",
+            "vertical_offset_mm": 29.898
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Calories: 55 kcal Carbohydrates: 13g Protein: 2g Fat: 0g",
+            "all_text_in_shape": "Calories: 55 kcal Carbohydrates: 13g Protein: 2g Fat: 0g"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251912192",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "1CE663D7",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "4D90DE62"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "1526041353",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1703070",
+            "cy": "1404620"
+          },
+          "extent_mm": {
+            "w": 47.307,
+            "h": 39.017
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "-654685",
+            "horizontal_offset_mm": -18.186,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "1062990",
+            "vertical_offset_mm": 29.527
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "Orange Juice عصير برتقال",
+            "all_text_in_shape": "Orange Juice عصير برتقال"
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251910144",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "49B0470B",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "0AA24AFD"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "345386669",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "1612900",
+            "cy": "546735"
+          },
+          "extent_mm": {
+            "w": 44.803,
+            "h": 15.187
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "-592044",
+            "horizontal_offset_mm": -16.446,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "1668145",
+            "vertical_offset_mm": 46.337
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            },
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            },
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251911168",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "0F238529",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "60B820AD"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "452704802",
+            "name": "Picture 452704802",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "711FD841",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "6DB828DA"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1287196658",
+            "name": "Picture 1287196658",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "4D041AF8",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "318B8BF7"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1706267479",
+            "name": "Picture 1706267479",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "51853D79",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "7F943461"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "452704802",
+            "name": "Picture 452704802",
+            "descr": "A black circle with a wheat symbol in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId7",
+              "target": "media/image1.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "711FD841",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "6DB828DA"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1287196658",
+            "name": "Picture 1287196658",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId8",
+              "target": "media/image2.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "4D041AF8",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "318B8BF7"
+          }
+        },
+        {
+          "kind": "inline",
+          "doc_pr": {
+            "id": "1706267479",
+            "name": "Picture 1706267479",
+            "descr": "A black circle with a box in it\n\nAI-generated content may be incorrect."
+          },
+          "extent_emu": {
+            "cx": "429769",
+            "cy": "429769"
+          },
+          "extent_mm": {
+            "w": 11.938,
+            "h": 11.938
+          },
+          "position": {
+            "horizontal_relative_from": null,
+            "horizontal_offset_emu": null,
+            "horizontal_offset_mm": null,
+            "vertical_relative_from": null,
+            "vertical_offset_emu": null,
+            "vertical_offset_mm": null
+          },
+          "wrap": {
+            "tag": null,
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId9",
+              "target": "media/image3.png"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "0",
+            "distR": "0",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "51853D79",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "7F943461"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "689897232",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "2907030",
+            "cy": "534670"
+          },
+          "extent_mm": {
+            "w": 80.751,
+            "h": 14.852
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "-327660",
+            "horizontal_offset_mm": -9.102,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "7613015",
+            "vertical_offset_mm": 211.473
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251908096",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "2450DDBB",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "436D949B"
+          }
+        },
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "10",
+            "name": "Text Box 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "2907030",
+            "cy": "534670"
+          },
+          "extent_mm": {
+            "w": 80.751,
+            "h": 14.852
+          },
+          "position": {
+            "horizontal_relative_from": "margin",
+            "horizontal_offset_emu": "3209027",
+            "horizontal_offset_mm": 89.14,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "2066290",
+            "vertical_offset_mm": 57.397
+          },
+          "wrap": {
+            "tag": "wrapSquare",
+            "attrs": {
+              "wrapText": "bothSides"
+            }
+          },
+          "images": [],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "45720",
+            "distB": "45720",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251664384",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "11D3094C",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "1492C591"
+          }
+        }
+      ],
+      "drawing_count": 56
+    },
+    {
+      "part": "word/header1.xml",
+      "sections": [],
+      "drawings": [
+        {
+          "kind": "anchor",
+          "doc_pr": {
+            "id": "2",
+            "name": "Picture 2",
+            "descr": null
+          },
+          "extent_emu": {
+            "cx": "7556474",
+            "cy": "10688400"
+          },
+          "extent_mm": {
+            "w": 209.902,
+            "h": 296.9
+          },
+          "position": {
+            "horizontal_relative_from": "column",
+            "horizontal_offset_emu": "-913765",
+            "horizontal_offset_mm": -25.382,
+            "vertical_relative_from": "paragraph",
+            "vertical_offset_emu": "-457200",
+            "vertical_offset_mm": -12.7
+          },
+          "wrap": {
+            "tag": "wrapNone",
+            "attrs": {}
+          },
+          "images": [
+            {
+              "rel_id": "rId1",
+              "target": "media/image7.jpeg"
+            }
+          ],
+          "text": {
+            "textbox_text": "",
+            "all_text_in_shape": ""
+          },
+          "raw_anchor_attrs": {
+            "distT": "0",
+            "distB": "0",
+            "distL": "114300",
+            "distR": "114300",
+            "simplePos": "0",
+            "relativeHeight": "251659264",
+            "behindDoc": "0",
+            "locked": "0",
+            "layoutInCell": "1",
+            "allowOverlap": "1",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId": "03D4B754",
+            "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}editId": "6D42DF0F"
+          }
+        }
+      ],
+      "drawing_count": 1
+    }
+  ]
+}
