@@ -8,6 +8,7 @@ Run:
 
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 import pandas as pd
@@ -28,6 +29,7 @@ from enrich import enrich_dish_name, openai_configured, openrouter_configured
 BASE_DIR = Path(__file__).resolve().parent
 DATA_CSV = BASE_DIR / "data" / "dishes.csv"
 LAYOUT_JSON = BASE_DIR / "data" / "layout_config.json"
+LAYOUT_NO_MACROS_JSON = BASE_DIR / "data" / "layout_no_macros.json"
 ASSETS_DIR = BASE_DIR / "assets"
 ICONS_DIR = ASSETS_DIR / "icons"
 FONTS_DIR = ASSETS_DIR / "fonts"
@@ -84,12 +86,12 @@ def _pick_arabic_bold_font() -> Path | None:
     return ttf[0] if ttf else None
 
 
-def _load_layout_dict() -> dict:
+def _load_layout_dict(layout_path: Path) -> dict:
     base = default_layout_dict()
-    if not LAYOUT_JSON.exists():
+    if not layout_path.exists():
         return base
     try:
-        user_data = json.loads(LAYOUT_JSON.read_text(encoding="utf-8"))
+        user_data = json.loads(layout_path.read_text(encoding="utf-8"))
     except Exception:
         return base
     if not isinstance(user_data, dict):
@@ -114,16 +116,14 @@ assets = AssetPaths(
     font_arabic_bold=default_arabic_bold_font,
 )
 
-layout_cfg = load_layout_config(LAYOUT_JSON)
-
-tab1, tab2, tab3 = st.tabs(
-    ["Generate PDF", "Dish Database", "Add Dish (Auto-fill)"]
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Generate PDF", "Dish Database", "Add Dish (Auto-fill)", "Layout Tuner"]
 )
 
 with tab1:
     st.subheader("1) Choose dishes (up to 6 per page)")
     names = sorted(df["name_en"].tolist())
-    selected = st.multiselect("Dishes", names, default=names[:6])
+    selected = st.multiselect("Dishes", names, default=[])
 
     colA, colB = st.columns([1, 1])
     with colA:
@@ -135,6 +135,16 @@ with tab1:
 
     with colB:
         st.subheader("2) Export")
+        layout_mode = st.selectbox(
+            "Layout",
+            options=["Full (with macros)", "Names + Nutriments (no macros)"],
+            index=0,
+        )
+        no_macros_mode = "no macros" in layout_mode.lower()
+        active_layout_path = LAYOUT_NO_MACROS_JSON if no_macros_mode else LAYOUT_JSON
+        layout_cfg = load_layout_config(active_layout_path)
+        if no_macros_mode:
+            layout_cfg = replace(layout_cfg, show_macros=False)
         filename = st.text_input("Output filename", value="layla_cards.pdf")
         if st.button("Generate PDF", type="primary", disabled=(len(selected) == 0)):
             dishes = [db[n.lower()] for n in selected if n.lower() in db]
@@ -282,50 +292,74 @@ with tab3:
                 "Tip: put an Arabic TTF in assets/fonts/ so the PDF renders Arabic correctly."
             )
 
-# with tab4:
-#     st.subheader("Layout Tuner (No code)")
-#     st.caption("Change values, save, then generate a PDF to test alignment.")
+with tab4:
+    st.subheader("Layout Tuner (No code)")
+    st.caption("Change values, save, then generate a PDF to test alignment.")
 
-#     layout = _load_layout_dict()
-#     col1, col2 = st.columns(2)
-#     with col1:
-#         layout["grid_x_mm"] = st.number_input("grid_x_mm", value=float(layout["grid_x_mm"]), step=0.1)
-#         layout["grid_y_mm"] = st.number_input("grid_y_mm", value=float(layout["grid_y_mm"]), step=0.1)
-#         layout["card_w_mm"] = st.number_input("card_w_mm", value=float(layout["card_w_mm"]), step=0.1)
-#         layout["card_h_mm"] = st.number_input("card_h_mm", value=float(layout["card_h_mm"]), step=0.1)
-#         layout["dish_x_offset_mm"] = st.number_input(
-#             "dish_x_offset_mm", value=float(layout["dish_x_offset_mm"]), step=0.1
-#         )
-#         layout["dish_box_width_mm"] = st.number_input(
-#             "dish_box_width_mm", value=float(layout["dish_box_width_mm"]), step=0.1
-#         )
-#         layout["dish_en_y_mm"] = st.number_input("dish_en_y_mm", value=float(layout["dish_en_y_mm"]), step=0.1)
-#         layout["dish_ar_gap_mm"] = st.number_input("dish_ar_gap_mm", value=float(layout["dish_ar_gap_mm"]), step=0.1)
-#         layout["dish_en_size"] = st.number_input("dish_en_size", value=float(layout["dish_en_size"]), step=0.1)
-#         layout["dish_ar_size"] = st.number_input("dish_ar_size", value=float(layout["dish_ar_size"]), step=0.1)
-#     with col2:
-#         layout["icon_x_offset_mm"] = st.number_input("icon_x_offset_mm", value=float(layout["icon_x_offset_mm"]), step=0.1)
-#         layout["icon_y_offset_mm"] = st.number_input("icon_y_offset_mm", value=float(layout["icon_y_offset_mm"]), step=0.1)
-#         layout["icon_size_mm"] = st.number_input("icon_size_mm", value=float(layout["icon_size_mm"]), step=0.1)
-#         layout["icon_gap_mm"] = st.number_input("icon_gap_mm", value=float(layout["icon_gap_mm"]), step=0.1)
-#         layout["macro_x_offset_mm"] = st.number_input(
-#             "macro_x_offset_mm", value=float(layout["macro_x_offset_mm"]), step=0.1
-#         )
-#         layout["macro_y_top_mm"] = st.number_input("macro_y_top_mm", value=float(layout["macro_y_top_mm"]), step=0.1)
-#         layout["macro_line_gap_mm"] = st.number_input(
-#             "macro_line_gap_mm", value=float(layout["macro_line_gap_mm"]), step=0.1
-#         )
-#         layout["macro_size"] = st.number_input("macro_size", value=float(layout["macro_size"]), step=0.1)
-#         layout["draw_grid_lines"] = st.checkbox("draw_grid_lines", value=bool(layout["draw_grid_lines"]))
+    profile = st.selectbox(
+        "Profile",
+        options=["Full (with macros)", "Names + Nutriments (no macros)"],
+        index=0,
+        key="layout_tuner_profile",
+    )
+    active_layout_path = LAYOUT_NO_MACROS_JSON if "no macros" in profile.lower() else LAYOUT_JSON
+    layout = _load_layout_dict(active_layout_path)
 
-#     c1, c2 = st.columns(2)
-#     with c1:
-#         if st.button("Save Layout", type="primary"):
-#             LAYOUT_JSON.write_text(json.dumps(layout, indent=2), encoding="utf-8")
-#             st.success(f"Saved: {LAYOUT_JSON}")
-#             st.rerun()
-#     with c2:
-#         if st.button("Reset Layout"):
-#             LAYOUT_JSON.write_text(json.dumps(default_layout_dict(), indent=2), encoding="utf-8")
-#             st.success("Layout reset to defaults.")
-#             st.rerun()
+    col1, col2 = st.columns(2)
+    with col1:
+        layout["grid_x_mm"] = st.number_input("grid_x_mm", value=float(layout["grid_x_mm"]), step=0.1)
+        layout["grid_y_mm"] = st.number_input("grid_y_mm", value=float(layout["grid_y_mm"]), step=0.1)
+        layout["card_w_mm"] = st.number_input("card_w_mm", value=float(layout["card_w_mm"]), step=0.1)
+        layout["card_h_mm"] = st.number_input("card_h_mm", value=float(layout["card_h_mm"]), step=0.1)
+        layout["dish_x_offset_mm"] = st.number_input(
+            "dish_x_offset_mm", value=float(layout["dish_x_offset_mm"]), step=0.1
+        )
+        layout["dish_box_width_mm"] = st.number_input(
+            "dish_box_width_mm", value=float(layout["dish_box_width_mm"]), step=0.1
+        )
+        layout["dish_en_y_mm"] = st.number_input("dish_en_y_mm", value=float(layout["dish_en_y_mm"]), step=0.1)
+        layout["dish_ar_gap_mm"] = st.number_input("dish_ar_gap_mm", value=float(layout["dish_ar_gap_mm"]), step=0.1)
+        layout["dish_en_size"] = st.number_input("dish_en_size", value=float(layout["dish_en_size"]), step=0.1)
+        layout["dish_ar_size"] = st.number_input("dish_ar_size", value=float(layout["dish_ar_size"]), step=0.1)
+        layout["show_macros"] = st.checkbox("show_macros", value=bool(layout.get("show_macros", True)))
+    with col2:
+        layout["icon_x_offset_mm"] = st.number_input("icon_x_offset_mm", value=float(layout["icon_x_offset_mm"]), step=0.1)
+        layout["icon_y_offset_mm"] = st.number_input("icon_y_offset_mm", value=float(layout["icon_y_offset_mm"]), step=0.1)
+        layout["icon_size_mm"] = st.number_input("icon_size_mm", value=float(layout["icon_size_mm"]), step=0.1)
+        layout["icon_gap_mm"] = st.number_input("icon_gap_mm", value=float(layout["icon_gap_mm"]), step=0.1)
+        layout["macro_x_offset_mm"] = st.number_input(
+            "macro_x_offset_mm", value=float(layout["macro_x_offset_mm"]), step=0.1
+        )
+        layout["macro_y_top_mm"] = st.number_input("macro_y_top_mm", value=float(layout["macro_y_top_mm"]), step=0.1)
+        layout["macro_line_gap_mm"] = st.number_input(
+            "macro_line_gap_mm", value=float(layout["macro_line_gap_mm"]), step=0.1
+        )
+        layout["macro_size"] = st.number_input("macro_size", value=float(layout["macro_size"]), step=0.1)
+        layout["draw_grid_lines"] = st.checkbox("draw_grid_lines", value=bool(layout["draw_grid_lines"]))
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Save Layout", type="primary"):
+            active_layout_path.write_text(json.dumps(layout, indent=2), encoding="utf-8")
+            st.success(f"Saved: {active_layout_path}")
+            st.rerun()
+    with c2:
+        if st.button("Reset Layout"):
+            defaults = default_layout_dict()
+            if "no macros" in profile.lower():
+                defaults.update(
+                    {
+                        "show_macros": False,
+                        "dish_box_width_mm": 98.8,
+                        "dish_en_y_mm": 49.0,
+                        "dish_ar_gap_mm": 10.0,
+                        "dish_en_size": 16.0,
+                        "dish_ar_size": 15.0,
+                        "icon_size_mm": 13.2,
+                        "icon_gap_mm": 5.0,
+                        "icon_y_offset_mm": 24.0,
+                    }
+                )
+            active_layout_path.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
+            st.success("Layout reset to defaults.")
+            st.rerun()

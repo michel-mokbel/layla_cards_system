@@ -119,5 +119,12 @@ Use the **Layout Tuner** tab in Streamlit to adjust coordinates/sizes without ed
 - `Generate PDF` automatically uses this config
 - Use small increments (0.1 mm) and iterate
 
+## 9) Two layout profiles
+In **Generate PDF**, you can select:
+- `Full (with macros)` -> uses `data/layout_config.json`
+- `Names + Nutriments (no macros)` -> uses `data/layout_no_macros.json`
+
+The no-macros profile centers names + nutriment icons and uses slightly larger font/icon defaults.
+
 ---
 If you have your exact **blank template background** (the empty page with only the logo), we can also switch to a “background image” mode so the PDF matches your paper pixel-perfect.

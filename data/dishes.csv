@@ -1,9 +1,63 @@
-name_en,name_ar,calories_kcal,carbs_g,protein_g,fat_g,gluten,protein_type,dairy
-Orange Juice,عصير برتقال,55.0,13.0,2.0,0.0,gluten_free,veg,dairy_free
-Mango Juice,عصير مانغا,65.0,16.0,1.0,0.0,gluten_free,veg,dairy_free
-Beetroot Salad,سلطة شمندر,120.0,25.0,3.0,1.0,gluten_free,veg,dairy_free
-Tuna Sandwiches,ساندويتش تونا,75.0,6.0,5.0,3.5,gluten,meat,dairy_free
-Tabbouleh Cup,كوب تبولة,180.0,26.0,6.0,10.0,gluten_free,veg,dairy_free
-Almond Chia Energy Bites,كرات طاقة باللوز والشيا,180.0,16.0,5.0,11.0,gluten_free,veg,dairy_free
-Mini Pizza,بيتزا صغيرة,230.0,28.0,11.0,11.0,gluten,veg,dairy
-Mini Zaatar,زعتر صغير,150.0,15.0,2.0,5.0,gluten,veg,dairy_free
+﻿name_en,name_ar,calories_kcal,carbs_g,protein_g,fat_g,gluten,protein_type,dairy
+Almond Chia Energy Bites,ﻛﺮات طﺎﻗﺔ ﺑﺎﻟﻠﻮز واﻟﺸﯿﺎ,180,16,5,11.0,gluten_free,veg,dairy_free
+Baguette Hommos,ﺑﺎﻏﯿﺖ ﺣﻤّﺺ,300,50,12,14.0,gluten,veg,dairy
+Banana Cake,ﻛﯿﻚ اﻟﻤﻮز,260,36,4,11.0,gluten,veg,dairy
+Beetroot Salad,ﺳﻠطﺔ ﺷﻣﻧدر,120,25,3,1.0,gluten_free,veg,dairy_free
+Biscoff Choco Bites,ﺑﯿﺴﻜﻮف ﺷﻮﻛﻮﻻ,150,16,2,9.0,gluten_free,veg,dairy_free
+Brownies,ﺑﺮاوﻧﯿﺰ,220,29,4,14.0,gluten,veg,dairy
+Brownies Wallnut,ﺑﺮاوﻧﯿﺰ ﺑﺎﻟﺠﻮز,300,32,6,20.0,gluten,veg,dairy
+Carrot Cake,ﻛﯿﻚ اﻟﺠﺰر,150,30,5,10.0,gluten,veg,dairy
+Cheese Rolls,روﻟﺰ ﺑﺎﻟﺠﺒﻨﺔ,220,24,8,14.0,gluten,veg,dairy
+Chia Nuts Dates Bites,ﻛﺮات ﺷﯿﺎ ﺑﺎﻟﻤﻜﺴﺮات واﻟﺘﻤﺮ,190,22,5,10.0,gluten_free,veg,dairy_free
+Chicken Club Sandwich,ﺳﺎﻧﺪوﯾﺶ ﻛﻠﻮب دﺟﺎج,450,38,26,22.0,gluten,meat,dairy
+Chicken Sandwich,ﺳﺎﻧﺪوﯾﺘﺶ اﻟﺪﺟﺎج,240,32,16,12.0,gluten,meat,dairy
+Chicken Wrap,راب دﺟﺎج,400,36,24,18.0,gluten,meat,dairy
+Chocolate Cake,ﻛﯿﻚ اﻟﺸﻮﻛﻮﻻ,180,22,3,20.0,gluten,veg,dairy
+Chocolate Mousse Cup,ﻛﻮب ﻣﻮس اﻟﺸﻮﻛﻮﻻ,290,22,5,20.0,gluten,veg,dairy
+Cookies,إﻛﻠﯿﺮ,50,7,1,2.5,gluten,veg,dairy
+Croissant Mix,ﻣﻛس ﻛرواﺳون,200,28,6,5.0,gluten,veg,dairy
+Dry Cake,ﻛﯿﻚ ﺟﺎف,50,7,1,2.5,gluten,veg,dairy
+Dry Cakes,ﻛﯿﻚ ﺟﺎف,85,12,1,4.0,gluten,veg,dairy
+Eclair,إﻛﻠﯿﺮ,140,24,5,17.0,gluten,veg,dairy
+Egg Croissant,ﻛﺮواﺳﻮن اﻟﺒﯿﺾ,300,30,10,16.0,gluten,veg,dairy
+Egg Salad Sandwiches,ﺳﺎﻧﺪوﯾﺶ ﺳﻠﻄﺔ اﻟﺒﯿﺾ,200,16,4,15.0,gluten_free,veg,dairy_free
+Energy Bar,ﺑﺎر طﺎﻗﺔ,210,18,6,15.0,gluten_free,veg,dairy_free
+Fajita Tortilla Cone,ﺗﻮرﺗﯿﻼ ﻓﺎھﯿﺘﺎ,420,36,24,20.0,gluten,veg,dairy
+Fresh Salad Cup,ﻛﻮب ﺳﻠﻄﺔ طﺎزﺟﺔ,90,10,3,5.0,gluten_free,veg,dairy_free
+Fruit Cake,ﻛﯿﻚ اﻟﻔﺎﻛﮭﺔ,120,30,3,3.5,gluten_free,veg,dairy_free
+Fruit Salad,ﺳﻠﻄﺔ ﻓﻮاﻛﮫ,120,30,2,0.5,gluten_free,veg,dairy_free
+Granola Bar,ﺑﺎر ﻏﺮاﻧﻮﻻ,180,28,4,7.0,gluten,veg,dairy
+Greek Salad,ﺳﺎﻧﺪوﯾﺶ ﻛﻠﻮب دﺟﺎج,180,10,6,14.0,gluten_free,veg,dairy_free
+Greek Yogurt & Granola,ﻟﺒﻦ ﯾﻮﻧﺎﻧﻲ ﻣﻊ ﻏﺮاﻧﻮﻻ,280,36,15,8.0,gluten,veg,dairy
+Halloumi Bites,ﻟﻘﯿﻤﺎت ﺣﻠﻮم,100,7,12,16.0,gluten_free,veg,dairy_free
+Halloumi Sandwiches,ﺳﺎﻧﺪوﯾﺸﺎت ﺣﻠﻮم,85,7,4,5.0,gluten,veg,dairy
+Hash Brown,ھﺎش ﺑﺮاون,180,17,2,9.0,gluten,veg,dairy
+Hommos Cup,ﻛﻮب ﺣﻤّﺺ,220,6,8,14.0,gluten,veg,dairy
+Labneh Cup,ﻛﻮب ﻟﺒﻨﺔ,220,6,8,14.0,gluten,veg,dairy
+Labneh Tortilla,ﻟﺒﻨﯿﮫ ﺗﻮرﺗﯿﻼ,90,10,3,4.0,gluten,veg,dairy
+Mango Juice,ﻋﺼﯿﺮ اﻟﻔﺮاوﻟﺔ,65,16,1,0.0,gluten_free,veg,dairy_free
+Marble Cake,ﻛﯿﻚ ﻣﺎرﺑﻞ,200,30,5,10.0,gluten,veg,dairy
+Marble Cookies,ﻛﻮﻛﯿﺰ ﻣﺎرﺑﻞ,200,25,4,9.0,gluten,veg,dairy
+Mini Fatayer,ﺳﺎﻧﺪوﯾﺸﺎت ﺳﻠﻄﺔ اﻟﺒﯿﺾ,75,6,5,3.5,gluten,veg,dairy
+Mini Pizza,ﺳﺎﻧﺪوﯾﺸﺎت ﺗﻮﻧﺎ,200,30,9,9.0,gluten,veg,dairy
+Mini Zaatar,ﺳﺎﻧﺪوﯾﺸﺎت ﺗﻮﻧﺎ,50,7,1,2.5,gluten,veg,dairy
+Mozarella Sticks,ﻋﻮد ﻣﻮﺗﺰارﯾﻼ,90,6,4,4.0,gluten,veg,dairy
+Muffins,روﻟﺰ ﺑﺎﻟﺠﺒﻨﺔ,180,24,5,7.0,gluten,veg,dairy
+Mushroom Pie,ﻓﻄﯿﺮة ﻓﻄﺮ,230,26,7,15.0,gluten,veg,dairy
+Omelette Cupcake,أوﻣﻠﯾت ﻛب ﻛﯾك,170,4,10,12.0,gluten,veg,dairy
+Orange Cake,ﻛﯿﻚ اﻟﺒﺮﺗﻘﺎل,150,30,2,7.0,gluten,veg,dairy
+Orange Juice,ﻋﺼﯿﺮ ﺑﺮﺗﻘﺎل,55,13,2,0.0,gluten_free,veg,dairy_free
+Oreo Choco,أورﯾﻮ ﺷﻮﻛﻮﻻ,210,28,2,9.0,gluten,veg,dairy
+Pasta Salad Cup,ﻛﻮب ﺳﻠﻄﺔ ﺑﺎﺳﺘﺎ,220,28,7,8.0,gluten_free,veg,dairy_free
+Peanut Butter Bar,ﺑﺎر زﺑﺪة اﻟﻔﻮل اﻟﺴﻮداﻧﻲ,220,18,6,14.0,gluten,veg,dairy
+Philadelphia Tortilla Cone,ﺗﻮرﺗﯿﻼ ﻓﯿﻼدﻟﻔﯿﺎ,420,36,24,20.0,gluten,veg,dairy
+Philly Steak Tortilla,ﺗﻮرﺗﯿﻼ ﻓﯿﻠﻲ ﺳﺘﯿﻚ,420,36,24,20.0,gluten,veg,dairy
+Quinoa Beetroot Salad,ﺳﻠﻄﺔ ﻛﯿﻨﻮا ﻣﻊ ﺷﻤﻨﺪر,190,26,6,7.0,gluten_free,veg,dairy_free
+Sandwich,ﺳﺎﻧﺪوﯾﺘﺶ ﺣﺒﺶ وﺟﺒﻨﺔ ﻛﻠﻮب,450,38,26,22.0,gluten,veg,dairy
+Spinach Pie,ﻓﻄﯿﺮة ﺳﺒﺎﻧﺦ,220,26,8,14.0,gluten,veg,dairy
+Strawberry Juice,ﻋﺼﯿﺮ اﻟﻔﺮاوﻟﺔ,55,11,0,0.0,gluten_free,veg,dairy_free
+Tabbouleh Cup,ﻛﻮب ﺗﺒﻮﻟﺔ,130,20,5,6.0,gluten_free,veg,dairy_free
+Tuna Bites,ﻟﻘﯿﻤﺎت ﺗﻮﻧﺎ,180,20,20,6.0,gluten_free,veg,dairy_free
+Tuna Club Sandwich,ﻛﻠﻮب ﺳﺎﻧﺪوﯾﺶ ﺗﻮﻧﺎ,400,38,26,18.0,gluten,meat,dairy
+Tuna Sandwiches,ﺳﺎﻧﺪوﯾﺶ ﺗﻮﻧﺎ,75,6,5,3.5,gluten,meat,dairy
+Turkey & Cheese Croissant,ﻛﺮواﺳﻮن دﯾﻚ روﻣﻲ وﺟﺒﻨﺔ,390,32,18,22.0,gluten,veg,dairy

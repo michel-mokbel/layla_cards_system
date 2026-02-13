@@ -136,6 +136,7 @@ class LayoutConfig:
     card_h_mm: float = 79.2
     draw_grid_lines: bool = True
     draw_logo: bool = False
+    show_macros: bool = True
     dish_x_offset_mm: float = 0.0
     dish_box_width_mm: float = 51.752
     dish_en_y_mm: float = 53.5
@@ -538,19 +539,20 @@ def generate_cards_pdf(
                     ix += icon_size + icon_gap
 
                 # Macros (right side list)
-                c.setFont(latin_font_regular, macro_size)
+                if layout.show_macros:
+                    c.setFont(latin_font_regular, macro_size)
 
-                def macro_line(label: str, value: str, n: int):
-                    c.drawString(
-                        x0 + macro_x_offset,
-                        y0 + macro_y_top_offset - n * macro_line_gap,
-                        f"{label}: {value}",
-                    )
+                    def macro_line(label: str, value: str, n: int):
+                        c.drawString(
+                            x0 + macro_x_offset,
+                            y0 + macro_y_top_offset - n * macro_line_gap,
+                            f"{label}: {value}",
+                        )
 
-                macro_line("Calories", f"{_fmt(d.calories_kcal)} kcal", 0)
-                macro_line("Carbohydrates", f"{_fmt(d.carbs_g)} g", 1)
-                macro_line("Protein", f"{_fmt(d.protein_g)} g", 2)
-                macro_line("Fat", f"{_fmt(d.fat_g)} g", 3)
+                    macro_line("Calories", f"{_fmt(d.calories_kcal)} kcal", 0)
+                    macro_line("Carbohydrates", f"{_fmt(d.carbs_g)} g", 1)
+                    macro_line("Protein", f"{_fmt(d.protein_g)} g", 2)
+                    macro_line("Fat", f"{_fmt(d.fat_g)} g", 3)
 
             if idx >= len(dish_list):
                 break
