@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
+import math
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -77,10 +78,11 @@ def load_dishes_csv(csv_path: str | Path) -> Dict[str, Dish]:
         except Exception:
             return default
 
-    with csv_path.open("r", encoding="utf-8") as f:
+    # `utf-8-sig` handles BOM-prefixed CSV headers (e.g. "\ufeffname_en").
+    with csv_path.open("r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            name_en = (row.get("name_en") or "").strip()
+            name_en = (row.get("name_en") or row.get("\ufeffname_en") or "").strip()
             if not name_en:
                 continue
             d = Dish(
@@ -568,3 +570,337 @@ def _fmt(x: float) -> str:
     if abs(x - round(x)) < 1e-9:
         return str(int(round(x)))
     return f"{x:.1f}"
+
+
+def _draw_header_badge(
+    c: canvas.Canvas,
+    x: float,
+    y: float,
+    w: float,
+    text: str,
+    latin_font_regular: str,
+) -> None:
+    badge_h = 6.2 * mm
+    badge_pad_x = 2.1 * mm
+    text_size = 7.3
+    min_text_size = 6.0
+
+    c.saveState()
+    c.setFillColor(colors.Color(1.0, 1.0, 1.0))
+    c.roundRect(x, y, w, badge_h, 2.0 * mm, stroke=0, fill=1)
+
+    while text_size > min_text_size and pdfmetrics.stringWidth(text, latin_font_regular, text_size) > (w - 2.0 * badge_pad_x):
+        text_size -= 0.2
+
+    c.setFillColor(colors.Color(0.06, 0.20, 0.50))
+    c.setFont(latin_font_regular, text_size)
+    c.drawString(x + badge_pad_x, y + 1.8 * mm, text)
+    c.restoreState()
+
+
+def _draw_macro_chip(
+    c: canvas.Canvas,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    label: str,
+    value: str,
+    latin_font_regular: str,
+    latin_font_bold: str,
+    accent: colors.Color,
+) -> None:
+    c.saveState()
+    c.setFillColor(colors.Color(1.0, 1.0, 1.0))
+    c.roundRect(x, y, w, h, 1.8 * mm, stroke=0, fill=1)
+    c.setFillColor(accent)
+    c.rect(x, y, 1.1 * mm, h, stroke=0, fill=1)
+
+    c.setFillColor(colors.Color(0.12, 0.23, 0.55))
+    c.setFont(latin_font_regular, 6.9)
+    c.drawString(x + 2.0 * mm, y + h - (3.0 * mm), label)
+
+    c.setFillColor(colors.Color(0.06, 0.20, 0.50))
+    c.setFont(latin_font_bold, 8.6)
+    c.drawString(x + 2.0 * mm, y + 1.7 * mm, value)
+    c.restoreState()
+
+
+def _nutriment_entries(dish: Dish) -> List[str]:
+    entries: List[str] = []
+    if dish.gluten == "gluten_free":
+        entries.append("Gluten Free")
+    else:
+        entries.append("Contains Gluten")
+
+    if dish.protein_type == "veg":
+        entries.append("Vegetarian")
+    else:
+        entries.append("Contains Meat")
+
+    if dish.dairy == "dairy_free":
+        entries.append("Dairy Free")
+    else:
+        entries.append("Contains Dairy")
+    return entries
+
+
+def _wrap_text_two_lines(text: str, font_name: str, font_size: float, max_width: float) -> List[str]:
+    """
+    Wrap text into up to two lines that fit `max_width`.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return [""]
+
+    words = raw.split()
+    if not words:
+        return [raw]
+
+    lines: List[str] = []
+    current: List[str] = []
+    for w in words:
+        candidate = " ".join(current + [w]) if current else w
+        if pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
+            current.append(w)
+            continue
+
+        if current:
+            lines.append(" ".join(current))
+            current = [w]
+        else:
+            lines.append(w)
+            current = []
+
+        if len(lines) == 2:
+            break
+
+    if len(lines) < 2 and current:
+        lines.append(" ".join(current))
+
+    if len(lines) > 2:
+        lines = lines[:2]
+
+    if len(lines) == 2:
+        # hard trim second line if still too wide
+        second = lines[1]
+        while second and pdfmetrics.stringWidth(second, font_name, font_size) > max_width:
+            second = second[:-1].rstrip()
+        lines[1] = second
+
+    return lines
+
+
+def generate_buffet_menu_pdf(
+    dishes: Iterable[Dish],
+    out_pdf_path: str | Path,
+    assets: AssetPaths,
+    title: str = "Buffet Menu",
+    subtitle: str = "Nutriments and Macronutrients",
+) -> Path:
+    """
+    Generate a single A4 buffet-menu sheet with logo, dish sections, nutriments and macros.
+    """
+    out_pdf_path = Path(out_pdf_path)
+    out_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+
+    dish_list = list(dishes)
+    page_w, page_h = A4
+    c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
+    c.setTitle(title)
+
+    latin_font_regular, latin_font_bold, arabic_font_regular, arabic_font_bold = _register_fonts(assets)
+
+    margin_x = 13.5 * mm
+    margin_top = 11.0 * mm
+    margin_bottom = 11.5 * mm
+    header_h = 37.0 * mm
+    content_gap = 4.2 * mm
+
+    frame_x = margin_x
+    frame_y = margin_bottom
+    frame_w = page_w - (margin_x * 2.0)
+    frame_h = page_h - margin_top - margin_bottom
+
+    # Palette: white, blue, gold
+    blue_deep = colors.Color(0.06, 0.20, 0.50)
+    blue_mid = colors.Color(0.14, 0.34, 0.68)
+    gold = colors.Color(0.84, 0.67, 0.27)
+    gold_soft = colors.Color(0.95, 0.88, 0.70)
+
+    header_y = frame_y + frame_h - header_h - (5.0 * mm)
+    header_x = frame_x + (5.0 * mm)
+    header_w = frame_w - (10.0 * mm)
+    logo_w = 28.0 * mm
+    logo_h = 28.0 * mm
+    body_x = header_x
+    body_top = header_y - content_gap
+    body_w = header_w
+    body_h = body_top - (frame_y + 5.5 * mm)
+
+    per_page = 8
+    if not dish_list:
+        page_chunks: List[List[Dish]] = [[]]
+    else:
+        page_chunks = [dish_list[i:i + per_page] for i in range(0, len(dish_list), per_page)]
+
+    total_pages = len(page_chunks)
+
+    for page_idx, page_dishes in enumerate(page_chunks):
+        # Branded background and border frame
+        c.setFillColor(colors.Color(1.0, 1.0, 1.0))
+        c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
+
+        c.setFillColor(colors.Color(1.0, 1.0, 1.0))
+        c.roundRect(frame_x, frame_y, frame_w, frame_h, 5.0 * mm, stroke=0, fill=1)
+        c.setStrokeColor(gold)
+        c.setLineWidth(1.15)
+        c.roundRect(frame_x, frame_y, frame_w, frame_h, 5.0 * mm, stroke=1, fill=0)
+
+        # Header area (white background, gold accent line)
+        c.setFillColor(colors.Color(1.0, 1.0, 1.0))
+        c.roundRect(header_x, header_y, header_w, header_h, 3.5 * mm, stroke=0, fill=1)
+        c.setFillColor(gold)
+        c.rect(header_x, header_y, header_w, 1.4 * mm, stroke=0, fill=1)
+
+        logo_x = header_x + 4.2 * mm
+        logo_y = header_y + (header_h - logo_h) / 2.0
+        if assets.logo and assets.logo.exists():
+            try:
+                c.drawImage(
+                    ImageReader(str(assets.logo)),
+                    logo_x,
+                    logo_y,
+                    width=logo_w,
+                    height=logo_h,
+                    mask="auto",
+                    preserveAspectRatio=True,
+                )
+            except Exception:
+                pass
+
+        text_x = logo_x + logo_w + (5.0 * mm)
+        c.setFillColor(blue_deep)
+        c.setFont(latin_font_bold, 24.0)
+        c.drawString(text_x, header_y + header_h - (11.2 * mm), title)
+        c.setFont(latin_font_regular, 10.8)
+        c.setFillColor(blue_mid)
+        c.drawString(text_x, header_y + 8.8 * mm, subtitle)
+
+        if total_pages > 1:
+            c.setFont(latin_font_regular, 8.8)
+            c.setFillColor(blue_mid)
+            c.drawRightString(
+                header_x + header_w - (4.0 * mm),
+                header_y + header_h - (5.0 * mm),
+                f"Page {page_idx + 1} of {total_pages}",
+            )
+
+        item_count = max(1, len(page_dishes))
+        cols = 1 if item_count <= 4 else 2
+        rows = max(1, math.ceil(item_count / cols))
+        col_gap = 4.0 * mm
+        row_gap = 4.0 * mm
+        card_w = (body_w - ((cols - 1) * col_gap)) / cols
+        card_h = (body_h - ((rows - 1) * row_gap)) / rows
+
+        for i, dish in enumerate(page_dishes):
+            row = i // cols
+            col = i % cols
+            card_x = body_x + col * (card_w + col_gap)
+            card_y = body_top - ((row + 1) * card_h) - (row * row_gap)
+
+            fill = colors.Color(1.0, 1.0, 1.0) if (i % 2 == 0) else colors.Color(0.985, 0.992, 1.0)
+            c.setFillColor(fill)
+            c.setStrokeColor(gold)
+            c.setLineWidth(0.7)
+            c.roundRect(card_x, card_y, card_w, card_h, 2.8 * mm, stroke=1, fill=1)
+
+            # Dedicated non-overlapping lanes for names: EN on left, AR on right.
+            left_pad = 3.4 * mm
+            right_pad = 3.4 * mm
+            top_text_y = card_y + card_h - 5.0 * mm
+            en_lane_w = (card_w * 0.60) - left_pad
+            ar_lane_w = (card_w * 0.34) - right_pad
+
+            en_font = 12.5
+            en_lines = _wrap_text_two_lines(dish.name_en, latin_font_bold, en_font, en_lane_w)
+            en_line_gap = 4.8 * mm
+            c.setFillColor(blue_deep)
+            c.setFont(latin_font_bold, en_font)
+            c.drawString(card_x + left_pad, top_text_y - 1.8 * mm, en_lines[0] if en_lines else "")
+            if len(en_lines) > 1 and en_lines[1]:
+                c.drawString(card_x + left_pad, top_text_y - 1.8 * mm - en_line_gap, en_lines[1])
+
+            ar_text = _try_arabic_shape(dish.name_ar) if dish.name_ar else ""
+            ar_font = 10.3
+            ar_lines = _wrap_text_two_lines(ar_text, arabic_font_bold, ar_font, ar_lane_w)
+            ar_line_gap = 4.4 * mm
+            c.setFillColor(blue_mid)
+            c.setFont(arabic_font_bold, ar_font)
+            c.drawRightString(card_x + card_w - right_pad, top_text_y - 1.8 * mm, ar_lines[0] if ar_lines else "")
+            if len(ar_lines) > 1 and ar_lines[1]:
+                c.drawRightString(card_x + card_w - right_pad, top_text_y - 1.8 * mm - ar_line_gap, ar_lines[1])
+
+            c.setStrokeColor(gold_soft)
+            c.setLineWidth(0.5)
+            divider_y = card_y + card_h - 14.2 * mm
+            c.line(card_x + 3.0 * mm, divider_y, card_x + card_w - 3.0 * mm, divider_y)
+
+            nutriments = _nutriment_entries(dish)
+            badge_y = divider_y - 8.2 * mm
+            badge_x = card_x + 3.0 * mm
+            badge_gap = 1.6 * mm
+            badge_w = (card_w - 6.0 * mm - (2.0 * badge_gap)) / 3.0
+            for idx_badge, label in enumerate(nutriments[:3]):
+                _draw_header_badge(
+                    c=c,
+                    x=badge_x + idx_badge * (badge_w + badge_gap),
+                    y=badge_y,
+                    w=badge_w,
+                    text=label,
+                    latin_font_regular=latin_font_regular,
+                )
+
+            section_sep_y = badge_y - 2.6 * mm
+            c.setStrokeColor(gold_soft)
+            c.setLineWidth(0.45)
+            c.line(card_x + 3.0 * mm, section_sep_y, card_x + card_w - 3.0 * mm, section_sep_y)
+
+            macro_title_y = badge_y - 12.0 * mm
+
+            chip_h = 8.5 * mm
+            chip_gap_x = 2.0 * mm
+            chip_gap_y = 1.9 * mm
+            chip_w = (card_w - 6.0 * mm - chip_gap_x) / 2.0
+            chip_x = card_x + 3.0 * mm
+            chip_y = macro_title_y - 5.2 * mm
+
+            macro_items = [
+                ("Calories", f"{_fmt(dish.calories_kcal)} kcal", gold),
+                ("Carbs", f"{_fmt(dish.carbs_g)} g", blue_mid),
+                ("Protein", f"{_fmt(dish.protein_g)} g", gold),
+                ("Fat", f"{_fmt(dish.fat_g)} g", blue_mid),
+            ]
+
+            for j, (label, value, accent) in enumerate(macro_items):
+                cx = chip_x + (j % 2) * (chip_w + chip_gap_x)
+                cy = chip_y - (j // 2) * (chip_h + chip_gap_y)
+                _draw_macro_chip(
+                    c=c,
+                    x=cx,
+                    y=cy,
+                    w=chip_w,
+                    h=chip_h,
+                    label=label,
+                    value=value,
+                    latin_font_regular=latin_font_regular,
+                    latin_font_bold=latin_font_bold,
+                    accent=accent,
+                )
+
+        if page_idx < total_pages - 1:
+            c.showPage()
+
+    c.save()
+    return out_pdf_path

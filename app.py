@@ -19,6 +19,7 @@ from cards import (
     Dish,
     LayoutConfig,
     default_layout_dict,
+    generate_buffet_menu_pdf,
     generate_cards_pdf,
     load_dishes_csv,
     load_layout_config,
@@ -116,8 +117,8 @@ assets = AssetPaths(
     font_arabic_bold=default_arabic_bold_font,
 )
 
-tab1, tab2, tab3 = st.tabs(
-    ["Generate PDF", "Dish Database", "Add Dish (Auto-fill)"]
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Generate Cards PDF", "Buffet A4 Menu", "Dish Database", "Add Dish (Auto-fill)"]
 )
 
 # tab1, tab2, tab3, tab4 = st.tabs(
@@ -172,6 +173,78 @@ with tab1:
             )
 
 with tab2:
+    st.subheader("Buffet Table Menu (Single A4)")
+    st.caption(
+        "Create one professional A4 menu sheet for buffet display with logo, dish name, nutriments, and macros."
+    )
+
+    names = sorted(df["name_en"].tolist())
+    selected_menu = st.multiselect("Menu dishes", names, default=[], key="buffet_menu_selected")
+
+    colA, colB = st.columns([1, 1])
+    with colA:
+        menu_title = st.text_input("Menu title", value="Layla Buffet Menu", key="buffet_menu_title")
+        menu_subtitle = st.text_input(
+            "Menu subtitle",
+            value="Nutriments and Macronutrients",
+            key="buffet_menu_subtitle",
+        )
+    with colB:
+        menu_filename = st.text_input("Output filename", value="layla_buffet_menu.pdf", key="buffet_menu_filename")
+        if len(selected_menu) > 12:
+            st.warning("For best one-page readability, select up to 12 dishes.")
+
+    if st.button("Generate Buffet Menu PDF", type="primary", disabled=(len(selected_menu) == 0), key="gen_buffet"):
+        dishes = [db[n.strip().lower()] for n in selected_menu if n.strip().lower() in db]
+        if not dishes:
+            # Fallback from dataframe rows when lookup keys differ.
+            for n in selected_menu:
+                rows = df[df["name_en"].astype(str).str.strip() == str(n).strip()]
+                if rows.empty:
+                    continue
+                row = rows.iloc[0]
+                dishes.append(
+                    Dish(
+                        name_en=str(row.get("name_en", "")).strip(),
+                        name_ar=str(row.get("name_ar", "")).strip(),
+                        calories_kcal=float(row.get("calories_kcal", 0) or 0),
+                        carbs_g=float(row.get("carbs_g", 0) or 0),
+                        protein_g=float(row.get("protein_g", 0) or 0),
+                        fat_g=float(row.get("fat_g", 0) or 0),
+                        gluten=str(row.get("gluten", "gluten_free")).strip() or "gluten_free",
+                        protein_type=str(row.get("protein_type", "veg")).strip() or "veg",
+                        dairy=str(row.get("dairy", "dairy_free")).strip() or "dairy_free",
+                    )
+                )
+
+        if not dishes:
+            st.error("Could not resolve selected dishes from the database. Please reload the page and try again.")
+        else:
+            out_path = OUT_DIR / menu_filename
+            generate_buffet_menu_pdf(
+                dishes=dishes,
+                out_pdf_path=out_path,
+                assets=assets,
+                title=menu_title.strip() or "Layla Buffet Menu",
+                subtitle=menu_subtitle.strip() or "Nutriments and Macronutrients",
+            )
+            st.session_state["generated_buffet_pdf_bytes"] = out_path.read_bytes()
+            st.session_state["generated_buffet_pdf_name"] = out_path.name
+            st.success("Buffet menu PDF generated.")
+
+    buffet_bytes = st.session_state.get("generated_buffet_pdf_bytes")
+    buffet_name = st.session_state.get("generated_buffet_pdf_name", "layla_buffet_menu.pdf")
+    if buffet_bytes:
+        st.download_button(
+            "Download Buffet Menu PDF",
+            data=buffet_bytes,
+            file_name=buffet_name,
+            mime="application/pdf",
+            use_container_width=True,
+            key="download_buffet_pdf",
+        )
+
+with tab3:
     st.subheader("Dish Database (CSV-backed)")
     st.caption("Edit here, then click Save. This keeps everything deterministic vs calling a nutrition API.")
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
@@ -181,7 +254,7 @@ with tab2:
         st.success("Saved. Reloading…")
         st.rerun()
 
-with tab3:
+with tab4:
     st.subheader("Add a dish")
     st.caption(
         "Type the dish name in English, then auto-fill (optional) and review/edit before saving to the CSV."
