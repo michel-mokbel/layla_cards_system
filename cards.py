@@ -697,6 +697,7 @@ def generate_buffet_menu_pdf(
     assets: AssetPaths,
     title: str = "Buffet Menu",
     subtitle: str = "Nutriments and Macronutrients",
+    menu_date: Optional[str] = None,
 ) -> Path:
     """
     Generate a single A4 buffet-menu sheet with logo, dish sections, nutriments and macros.
@@ -786,6 +787,15 @@ def generate_buffet_menu_pdf(
         c.setFont(latin_font_regular, 10.8)
         c.setFillColor(blue_mid)
         c.drawString(text_x, header_y + 8.8 * mm, subtitle)
+
+        if menu_date:
+            c.setFont(latin_font_bold, 10.0)
+            c.setFillColor(blue_deep)
+            c.drawRightString(
+                header_x + header_w - (4.0 * mm),
+                header_y + 12.5 * mm,
+                f"Date: {menu_date}",
+            )
 
         if total_pages > 1:
             c.setFont(latin_font_regular, 8.8)

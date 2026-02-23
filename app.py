@@ -9,6 +9,7 @@ Run:
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import date
 import json
 from pathlib import Path
 import pandas as pd
@@ -189,6 +190,7 @@ with tab2:
             value="Nutriments and Macronutrients",
             key="buffet_menu_subtitle",
         )
+        menu_date = st.date_input("Menu date", value=date.today(), key="buffet_menu_date")
     with colB:
         menu_filename = st.text_input("Output filename", value="layla_buffet_menu.pdf", key="buffet_menu_filename")
         if len(selected_menu) > 12:
@@ -227,6 +229,7 @@ with tab2:
                 assets=assets,
                 title=menu_title.strip() or "Layla Buffet Menu",
                 subtitle=menu_subtitle.strip() or "Nutriments and Macronutrients",
+                menu_date=menu_date.strftime("%d %b %Y"),
             )
             st.session_state["generated_buffet_pdf_bytes"] = out_path.read_bytes()
             st.session_state["generated_buffet_pdf_name"] = out_path.name
