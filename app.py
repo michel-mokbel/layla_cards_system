@@ -40,6 +40,19 @@ TEMPLATE_PAGE = ASSETS_DIR / "template_page.png"
 OUT_DIR = BASE_DIR / "out"
 OUT_DIR.mkdir(exist_ok=True)
 
+
+def _read_dishes_df(path: Path) -> pd.DataFrame:
+    # Use utf-8-sig to normalize BOM-prefixed CSVs across environments.
+    df = pd.read_csv(path, encoding="utf-8-sig")
+    df.columns = [str(c).replace("\ufeff", "").strip() for c in df.columns]
+    return df
+
+
+def _write_dishes_df(df: pd.DataFrame, path: Path) -> None:
+    # Keep encoding stable so headers don't oscillate between BOM/non-BOM forms.
+    df.to_csv(path, index=False, encoding="utf-8-sig")
+
+
 st.set_page_config(page_title="Layla Cards Generator", layout="wide")
 st.title("Layla Cards Generator")
 
@@ -48,7 +61,7 @@ if not DATA_CSV.exists():
     st.error(f"Missing data file: {DATA_CSV}")
     st.stop()
 
-df = pd.read_csv(DATA_CSV)
+df = _read_dishes_df(DATA_CSV)
 db = load_dishes_csv(DATA_CSV)
 
 # Ensure required columns exist (keeps CSV forward-compatible)
@@ -68,9 +81,9 @@ if missing:
     for c in missing:
         df[c] = ""
     df = df[required_cols]
-    df.to_csv(DATA_CSV, index=False)
+    _write_dishes_df(df, DATA_CSV)
     st.warning(f"CSV was missing columns {missing}. Added them and reloaded.")
-    df = pd.read_csv(DATA_CSV)
+    df = _read_dishes_df(DATA_CSV)
     db = load_dishes_csv(DATA_CSV)
 
 
@@ -253,7 +266,7 @@ with tab3:
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
 
     if st.button("Save", type="primary"):
-        edited.to_csv(DATA_CSV, index=False)
+        _write_dishes_df(edited, DATA_CSV)
         st.success("Saved. Reloading…")
         st.rerun()
 
@@ -348,7 +361,7 @@ with tab4:
                     st.error("name_en is required.")
                 else:
                     name_key = str(new_row["name_en"]).strip().lower()
-                    current = pd.read_csv(DATA_CSV)
+                    current = _read_dishes_df(DATA_CSV)
                     if "name_en" not in current.columns:
                         st.error("CSV schema is invalid: missing name_en.")
                     else:
@@ -358,13 +371,13 @@ with tab4:
                                 st.error("Dish already exists. Enable “Overwrite if exists” to update it.")
                             else:
                                 current.loc[matches.idxmax(), required_cols] = [new_row[c] for c in required_cols]
-                                current.to_csv(DATA_CSV, index=False)
+                                _write_dishes_df(current, DATA_CSV)
                                 st.success("Updated existing dish. Reloading…")
                                 st.session_state.pop("candidate", None)
                                 st.rerun()
                         else:
                             current = pd.concat([current, pd.DataFrame([new_row])], ignore_index=True)
-                            current.to_csv(DATA_CSV, index=False)
+                            _write_dishes_df(current, DATA_CSV)
                             st.success("Added dish. Reloading…")
                             st.session_state.pop("candidate", None)
                             st.rerun()
