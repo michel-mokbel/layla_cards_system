@@ -691,6 +691,55 @@ def _wrap_text_two_lines(text: str, font_name: str, font_size: float, max_width:
     return lines
 
 
+def _wrap_arabic_two_lines(text: str, font_name: str, font_size: float, max_width: float) -> List[str]:
+    """
+    Wrap Arabic text into up to two lines using unshaped text for token order,
+    then shape each output line for rendering.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return [""]
+
+    words = raw.split()
+    if not words:
+        return [_try_arabic_shape(raw)]
+
+    lines_raw: List[str] = []
+    current: List[str] = []
+    for w in words:
+        candidate_raw = " ".join(current + [w]) if current else w
+        candidate_shaped = _try_arabic_shape(candidate_raw)
+        if pdfmetrics.stringWidth(candidate_shaped, font_name, font_size) <= max_width:
+            current.append(w)
+            continue
+
+        if current:
+            lines_raw.append(" ".join(current))
+            current = [w]
+        else:
+            lines_raw.append(w)
+            current = []
+
+        if len(lines_raw) == 2:
+            break
+
+    if len(lines_raw) < 2 and current:
+        lines_raw.append(" ".join(current))
+
+    if len(lines_raw) > 2:
+        lines_raw = lines_raw[:2]
+
+    if len(lines_raw) == 2:
+        second_raw = lines_raw[1]
+        second_shaped = _try_arabic_shape(second_raw)
+        while second_raw and pdfmetrics.stringWidth(second_shaped, font_name, font_size) > max_width:
+            second_raw = second_raw[:-1].rstrip()
+            second_shaped = _try_arabic_shape(second_raw)
+        lines_raw[1] = second_raw
+
+    return [_try_arabic_shape(line) for line in lines_raw]
+
+
 def generate_buffet_menu_pdf(
     dishes: Iterable[Dish],
     out_pdf_path: str | Path,
@@ -842,9 +891,9 @@ def generate_buffet_menu_pdf(
             if len(en_lines) > 1 and en_lines[1]:
                 c.drawString(card_x + left_pad, top_text_y - 1.8 * mm - en_line_gap, en_lines[1])
 
-            ar_text = _try_arabic_shape(dish.name_ar) if dish.name_ar else ""
+            ar_text = dish.name_ar or ""
             ar_font = 10.3
-            ar_lines = _wrap_text_two_lines(ar_text, arabic_font_bold, ar_font, ar_lane_w)
+            ar_lines = _wrap_arabic_two_lines(ar_text, arabic_font_bold, ar_font, ar_lane_w)
             ar_line_gap = 4.4 * mm
             c.setFillColor(blue_mid)
             c.setFont(arabic_font_bold, ar_font)
