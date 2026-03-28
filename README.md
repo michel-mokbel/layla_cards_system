@@ -8,14 +8,14 @@ This project generates **printable A4 PDF cards** (2 columns × 3 rows) like you
 - Icons + logo per card
 
 ## Folder structure
-- `data/dishes.csv` — your dish database (edit/add dishes here)
+- `data/dishes.csv` — local fallback dish database (used if Firebase is not configured)
 - `assets/logo.png` — your logo
 - `assets/icons/*.png` — icons (gluten / gluten_free / veg / meat / dairy / dairy_free)
 - `out/` — generated PDFs
 
 ## 1) Install
 ```bash
-pip install streamlit pandas reportlab pillow certifi
+pip install streamlit pandas reportlab pillow certifi firebase-admin
 # Optional but recommended for correct Arabic rendering:
 pip install arabic-reshaper python-bidi
 ```
@@ -23,6 +23,38 @@ pip install arabic-reshaper python-bidi
 ## 2) Run
 ```bash
 streamlit run app.py
+```
+
+## 2.1) Firebase persistence (recommended)
+To persist dishes across Streamlit sleep/restart, configure Firestore credentials.
+
+Environment variables or Streamlit secrets:
+- `FIREBASE_SERVICE_ACCOUNT_JSON` (service account JSON as a string) OR
+- `FIREBASE_SERVICE_ACCOUNT_PATH` (path to service account JSON file)
+- Optional: `FIREBASE_PROJECT_ID`
+- Optional: `FIREBASE_DISHES_COLLECTION` (default: `dishes`)
+- Optional: `FIREBASE_AUTO_SEED_FROM_CSV` (default: `true`)
+
+Example `.streamlit/secrets.toml`:
+```toml
+FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n","client_email":"...","client_id":"...","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"..."}'
+FIREBASE_PROJECT_ID="your-project-id"
+FIREBASE_DISHES_COLLECTION="dishes"
+```
+
+If Firebase is not configured, the app falls back to `data/dishes.csv`.
+
+### Seeding behavior
+- Automatic bootstrap: when Firestore is enabled and empty, the app auto-seeds from `data/dishes.csv` once.
+- Manual script (recommended for controlled reseed): use `tools/seed_firestore.py`.
+
+Examples:
+```bash
+# Safe upsert from CSV (no deletes)
+python tools/seed_firestore.py --csv data/dishes.csv --collection dishes
+
+# Full replace (Firestore mirrors CSV exactly)
+python tools/seed_firestore.py --csv data/dishes.csv --collection dishes --replace
 ```
 
 ## 3) Arabic rendering (important)

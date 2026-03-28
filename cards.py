@@ -130,15 +130,23 @@ class DebugOverlayOptions:
 
 @dataclass(frozen=True)
 class LayoutConfig:
+    layout_variant: str = "standard"
     cols: int = 2
     rows: int = 3
     grid_x_mm: float = 7.2
     grid_y_mm: float = 26.0
+    grid_gap_x_mm: float = 0.0
+    grid_gap_y_mm: float = 0.0
+    auto_center_grid: bool = False
     card_w_mm: float = 98.8
     card_h_mm: float = 79.2
     draw_grid_lines: bool = True
     draw_logo: bool = False
     show_macros: bool = True
+    logo_x_offset_mm: float = 34.4
+    logo_y_offset_mm: float = 53.2
+    logo_w_mm: float = 30.0
+    logo_h_mm: float = 18.0
     dish_x_offset_mm: float = 0.0
     dish_box_width_mm: float = 51.752
     dish_en_y_mm: float = 53.5
@@ -361,6 +369,290 @@ def _draw_centered_text(
     c.drawString(x, y, text)
 
 
+def _fit_text_block(
+    text: str,
+    *,
+    wrap_fn,
+    font_name: str,
+    max_font_size: float,
+    min_font_size: float,
+    max_width: float,
+    max_height: float,
+) -> Tuple[List[str], float]:
+    font_size = max_font_size
+    best_lines = [""]
+
+    while font_size >= min_font_size:
+        lines = wrap_fn(text, font_name, font_size, max_width)
+        if not lines:
+            lines = [""]
+
+        line_count = len([line for line in lines if line])
+        if line_count == 0:
+            return [""], font_size
+
+        line_height = font_size * 1.15
+        total_height = line_count * line_height
+        widths_fit = all(
+            pdfmetrics.stringWidth(line, font_name, font_size) <= max_width
+            for line in lines
+            if line
+        )
+        if widths_fit and total_height <= max_height:
+            return lines, font_size
+
+        best_lines = lines
+        font_size -= 0.4
+
+    return best_lines, min_font_size
+
+
+def _draw_text_lines_centered(
+    c: canvas.Canvas,
+    lines: List[str],
+    font_name: str,
+    font_size: float,
+    center_x: float,
+    center_y: float,
+) -> None:
+    visible_lines = [line for line in lines if line]
+    if not visible_lines:
+        return
+
+    line_height = font_size * 1.15
+    total_height = len(visible_lines) * line_height
+    first_baseline = center_y + (total_height / 2.0) - line_height
+
+    c.setFont(font_name, font_size)
+    for idx, line in enumerate(visible_lines):
+        y = first_baseline - (idx * line_height)
+        text_w = pdfmetrics.stringWidth(line, font_name, font_size)
+        c.drawString(center_x - (text_w / 2.0), y, line)
+
+
+def _draw_standard_card(
+    c: canvas.Canvas,
+    dish: Dish,
+    *,
+    x0: float,
+    y0: float,
+    card_w: float,
+    card_h: float,
+    assets: AssetPaths,
+    layout: LayoutConfig,
+    should_draw_logo: bool,
+    latin_font_regular: str,
+    latin_font_bold: str,
+    arabic_font_bold: str,
+) -> None:
+    logo_x_offset = layout.logo_x_offset_mm * mm
+    logo_y_offset = layout.logo_y_offset_mm * mm
+    logo_w = layout.logo_w_mm * mm
+    logo_h = layout.logo_h_mm * mm
+
+    icon_y_offset = layout.icon_y_offset_mm * mm
+    icon_size = layout.icon_size_mm * mm
+    icon_gap = layout.icon_gap_mm * mm
+
+    macro_x_offset = layout.macro_x_offset_mm * mm
+    macro_y_top_offset = layout.macro_y_top_mm * mm
+    macro_line_gap = layout.macro_line_gap_mm * mm
+
+    dish_x_offset = layout.dish_x_offset_mm * mm
+    dish_en_y = layout.dish_en_y_mm * mm
+    dish_ar_y = dish_en_y - (layout.dish_ar_gap_mm * mm)
+    dish_box_width = layout.dish_box_width_mm * mm
+
+    c.setFillColor(colors.black)
+
+    if should_draw_logo:
+        try:
+            c.drawImage(
+                ImageReader(str(assets.logo)),
+                x0 + logo_x_offset,
+                y0 + logo_y_offset,
+                width=logo_w,
+                height=logo_h,
+                mask="auto",
+                preserveAspectRatio=True,
+            )
+        except Exception:
+            pass
+
+    center_x = x0 + dish_x_offset + (dish_box_width / 2.0)
+    _draw_centered_text(
+        c=c,
+        text=dish.name_en,
+        font_name=latin_font_bold,
+        font_size=layout.dish_en_size,
+        center_x=center_x,
+        y=y0 + dish_en_y,
+    )
+
+    ar_text = _try_arabic_shape(dish.name_ar) if dish.name_ar else ""
+    _draw_centered_text(
+        c=c,
+        text=ar_text,
+        font_name=arabic_font_bold,
+        font_size=layout.dish_ar_size,
+        center_x=center_x,
+        y=y0 + dish_ar_y,
+    )
+
+    icons = _icon_triplet(dish, assets)
+    icon_group_w = (len(icons) * icon_size) + (max(0, len(icons) - 1) * icon_gap)
+    ix = center_x - (icon_group_w / 2.0)
+    iy = y0 + icon_y_offset
+    for p in icons:
+        try:
+            c.drawImage(
+                ImageReader(str(p)),
+                ix,
+                iy,
+                width=icon_size,
+                height=icon_size,
+                mask="auto",
+                preserveAspectRatio=True,
+            )
+        except Exception:
+            c.rect(ix, iy, icon_size, icon_size, stroke=1, fill=0)
+        ix += icon_size + icon_gap
+
+    if layout.show_macros:
+        c.setFont(latin_font_regular, layout.macro_size)
+
+        def macro_line(label: str, value: str, n: int):
+            c.drawString(
+                x0 + macro_x_offset,
+                y0 + macro_y_top_offset - n * macro_line_gap,
+                f"{label}: {value}",
+            )
+
+        macro_line("Calories", f"{_fmt(dish.calories_kcal)} kcal", 0)
+        macro_line("Carbohydrates", f"{_fmt(dish.carbs_g)} g", 1)
+        macro_line("Protein", f"{_fmt(dish.protein_g)} g", 2)
+        macro_line("Fat", f"{_fmt(dish.fat_g)} g", 3)
+
+
+def _draw_compact_55x90_card(
+    c: canvas.Canvas,
+    dish: Dish,
+    *,
+    x0: float,
+    y0: float,
+    card_w: float,
+    card_h: float,
+    assets: AssetPaths,
+    layout: LayoutConfig,
+    should_draw_logo: bool,
+    latin_font_bold: str,
+    arabic_font_bold: str,
+) -> None:
+    inner_pad_x = 3.0 * mm
+    inner_pad_y = 3.5 * mm
+    lane_gap = 2.0 * mm
+    logo_lane_w = max(layout.dish_x_offset_mm * mm, (layout.logo_w_mm * mm) + (1.0 * mm))
+    icon_size = layout.icon_size_mm * mm
+    icon_gap = layout.icon_gap_mm * mm
+    icon_row_gap = 4.6 * mm
+
+    logo_w = min(layout.logo_w_mm * mm, max(0.0, logo_lane_w - (1.0 * mm)))
+    logo_h = layout.logo_h_mm * mm
+    logo_x = x0 + inner_pad_x + ((logo_lane_w - logo_w) / 2.0)
+    logo_y = y0 + ((card_h - logo_h) / 2.0)
+
+    if should_draw_logo:
+        try:
+            c.drawImage(
+                ImageReader(str(assets.logo)),
+                logo_x,
+                logo_y,
+                width=logo_w,
+                height=logo_h,
+                mask="auto",
+                preserveAspectRatio=True,
+            )
+        except Exception:
+            pass
+
+    content_x = x0 + inner_pad_x + logo_lane_w + lane_gap
+    content_w = card_w - (2.0 * inner_pad_x) - logo_lane_w - lane_gap
+    content_center_x = content_x + (content_w / 2.0)
+    content_h = card_h - (2.0 * inner_pad_y)
+    content_center_y = y0 + inner_pad_y + (content_h / 2.0)
+
+    en_lines, en_size = _fit_text_block(
+        dish.name_en,
+        wrap_fn=_wrap_text_two_lines,
+        font_name=latin_font_bold,
+        max_font_size=layout.dish_en_size,
+        min_font_size=9.0,
+        max_width=content_w,
+        max_height=content_h * 0.34,
+    )
+    ar_lines, ar_size = _fit_text_block(
+        dish.name_ar or "",
+        wrap_fn=_wrap_arabic_two_lines,
+        font_name=arabic_font_bold,
+        max_font_size=layout.dish_ar_size,
+        min_font_size=8.0,
+        max_width=content_w,
+        max_height=content_h * 0.24,
+    )
+
+    en_visible = [line for line in en_lines if line]
+    ar_visible = [line for line in ar_lines if line]
+    en_height = len(en_visible) * en_size * 1.15
+    ar_height = len(ar_visible) * ar_size * 1.15
+    text_gap = 1.2 * mm if en_visible and ar_visible else 0.0
+    total_text_height = en_height + ar_height + text_gap
+    stack_height = total_text_height + icon_row_gap + icon_size
+    stack_top = content_center_y + (stack_height / 2.0)
+
+    c.setFillColor(colors.black)
+    if en_visible:
+        en_center_y = stack_top - (en_height / 2.0)
+        _draw_text_lines_centered(
+            c,
+            en_visible,
+            latin_font_bold,
+            en_size,
+            content_center_x,
+            en_center_y,
+        )
+
+    if ar_visible:
+        ar_center_y = stack_top - en_height - text_gap - (ar_height / 2.0)
+        _draw_text_lines_centered(
+            c,
+            ar_visible,
+            arabic_font_bold,
+            ar_size,
+            content_center_x,
+            ar_center_y,
+        )
+
+    icons = _icon_triplet(dish, assets)
+    icon_group_w = (len(icons) * icon_size) + (max(0, len(icons) - 1) * icon_gap)
+    ix = content_center_x - (icon_group_w / 2.0)
+    text_bottom = stack_top - total_text_height
+    iy = text_bottom - icon_row_gap - icon_size
+    for p in icons:
+        try:
+            c.drawImage(
+                ImageReader(str(p)),
+                ix,
+                iy,
+                width=icon_size,
+                height=icon_size,
+                mask="auto",
+                preserveAspectRatio=True,
+            )
+        except Exception:
+            c.rect(ix, iy, icon_size, icon_size, stroke=1, fill=0)
+        ix += icon_size + icon_gap
+
+
 def generate_cards_pdf(
     dishes: Iterable[Dish],
     out_pdf_path: str | Path,
@@ -385,46 +677,28 @@ def generate_cards_pdf(
     layout = layout_config or LayoutConfig()
 
     cols, rows = layout.cols, layout.rows
-    grid_x = layout.grid_x_mm * mm
-    grid_y = layout.grid_y_mm * mm
     card_w = layout.card_w_mm * mm
     card_h = layout.card_h_mm * mm
-    grid_w = card_w * cols
-    grid_h = card_h * rows
+    grid_gap_x = layout.grid_gap_x_mm * mm
+    grid_gap_y = layout.grid_gap_y_mm * mm
+    grid_w = (card_w * cols) + (grid_gap_x * max(0, cols - 1))
+    grid_h = (card_h * rows) + (grid_gap_y * max(0, rows - 1))
+    if layout.auto_center_grid:
+        grid_x = (page_w - grid_w) / 2.0
+        grid_y = (page_h - grid_h) / 2.0
+    else:
+        grid_x = layout.grid_x_mm * mm
+        grid_y = layout.grid_y_mm * mm
 
     # Styling
     border_color = colors.Color(0.85, 0.85, 0.85)
     border_width = 0.6
     draw_grid_lines = layout.draw_grid_lines and (assets.template_page is None)
 
-    # Content offsets within card
-    pad_x = 0.0 * mm
-    pad_top = 8 * mm
-    logo_h = 18 * mm
-    logo_w = 30 * mm
-
-    icon_x_offset = layout.icon_x_offset_mm * mm
-    icon_y_offset = layout.icon_y_offset_mm * mm
-    icon_size = layout.icon_size_mm * mm
-    icon_gap = layout.icon_gap_mm * mm
-
-    # Macro column
-    macro_x_offset = layout.macro_x_offset_mm * mm
-    macro_y_top_offset = layout.macro_y_top_mm * mm
-    macro_line_gap = layout.macro_line_gap_mm * mm
-
-    # Dish text
-    dish_x_offset = layout.dish_x_offset_mm * mm
-    dish_en_y = layout.dish_en_y_mm * mm
-    dish_ar_y = dish_en_y - (layout.dish_ar_gap_mm * mm)
-
-    dish_en_size = layout.dish_en_size
-    dish_ar_size = layout.dish_ar_size
-    macro_size = layout.macro_size
-
     dish_list = list(dishes)
     idx = 0
     layout_data = _load_layout_json(debug_overlay.docx_layout_json) if debug_overlay else None
+    is_compact_55x90 = layout.layout_variant == "compact_55x90"
 
     while idx < len(dish_list):
         if assets.template_page and assets.template_page.exists():
@@ -459,13 +733,20 @@ def generate_cards_pdf(
         if draw_grid_lines:
             c.setStrokeColor(border_color)
             c.setLineWidth(border_width)
-            # Outer border
-            c.rect(grid_x, grid_y, grid_w, grid_h, stroke=1, fill=0)
-            # Vertical divider
-            c.line(grid_x + card_w, grid_y, grid_x + card_w, grid_y + grid_h)
-            # Horizontal dividers (2 lines)
-            c.line(grid_x, grid_y + card_h, grid_x + grid_w, grid_y + card_h)
-            c.line(grid_x, grid_y + 2 * card_h, grid_x + grid_w, grid_y + 2 * card_h)
+            if grid_gap_x == 0 and grid_gap_y == 0:
+                c.rect(grid_x, grid_y, grid_w, grid_h, stroke=1, fill=0)
+                for col in range(1, cols):
+                    x = grid_x + col * card_w
+                    c.line(x, grid_y, x, grid_y + grid_h)
+                for row in range(1, rows):
+                    y = grid_y + row * card_h
+                    c.line(grid_x, y, grid_x + grid_w, y)
+            else:
+                for r in range(rows):
+                    for col in range(cols):
+                        x = grid_x + col * (card_w + grid_gap_x)
+                        y = grid_y + (rows - 1 - r) * (card_h + grid_gap_y)
+                        c.rect(x, y, card_w, card_h, stroke=1, fill=0)
 
         # Draw up to 6 cards
         for r in range(rows):
@@ -476,85 +757,39 @@ def generate_cards_pdf(
                 idx += 1
 
                 # Card origin (bottom-left)
-                x0 = grid_x + col * card_w
-                y0 = grid_y + (rows - 1 - r) * card_h
+                x0 = grid_x + col * (card_w + grid_gap_x)
+                y0 = grid_y + (rows - 1 - r) * (card_h + grid_gap_y)
 
-                # Logo (top center)
                 should_draw_logo = (draw_logo or layout.draw_logo) and (not assets.template_page)
-                if should_draw_logo:
-                    try:
-                        c.drawImage(
-                            ImageReader(str(assets.logo)),
-                            x0 + (card_w - logo_w) / 2,
-                            y0 + card_h - pad_top - logo_h,
-                            width=logo_w,
-                            height=logo_h,
-                            mask="auto",
-                            preserveAspectRatio=True,
-                            anchor="c",
-                        )
-                    except Exception:
-                        pass
-
-                # Dish name EN (bold)
-                c.setFillColor(colors.black)
-                center_x = x0 + dish_x_offset + (layout.dish_box_width_mm * mm / 2.0)
-                _draw_centered_text(
-                    c=c,
-                    text=d.name_en,
-                    font_name=latin_font_bold,
-                    font_size=dish_en_size,
-                    center_x=center_x,
-                    y=y0 + dish_en_y,
-                )
-
-                # Dish name AR (under EN, left side)
-                ar_text = _try_arabic_shape(d.name_ar) if d.name_ar else ""
-                _draw_centered_text(
-                    c=c,
-                    text=ar_text,
-                    font_name=arabic_font_bold,
-                    font_size=dish_ar_size,
-                    center_x=center_x,
-                    y=y0 + dish_ar_y,
-                )
-
-                # Icons (left bottom-ish)
-                icons = _icon_triplet(d, assets)
-                icon_group_w = (len(icons) * icon_size) + (max(0, len(icons) - 1) * icon_gap)
-                ix = center_x - (icon_group_w / 2.0)
-                iy = y0 + icon_y_offset
-                for p in icons:
-                    try:
-                        c.drawImage(
-                            ImageReader(str(p)),
-                            ix,
-                            iy,
-                            width=icon_size,
-                            height=icon_size,
-                            mask="auto",
-                            preserveAspectRatio=True,
-                        )
-                    except Exception:
-                        # If icon missing, draw placeholder square
-                        c.rect(ix, iy, icon_size, icon_size, stroke=1, fill=0)
-                    ix += icon_size + icon_gap
-
-                # Macros (right side list)
-                if layout.show_macros:
-                    c.setFont(latin_font_regular, macro_size)
-
-                    def macro_line(label: str, value: str, n: int):
-                        c.drawString(
-                            x0 + macro_x_offset,
-                            y0 + macro_y_top_offset - n * macro_line_gap,
-                            f"{label}: {value}",
-                        )
-
-                    macro_line("Calories", f"{_fmt(d.calories_kcal)} kcal", 0)
-                    macro_line("Carbohydrates", f"{_fmt(d.carbs_g)} g", 1)
-                    macro_line("Protein", f"{_fmt(d.protein_g)} g", 2)
-                    macro_line("Fat", f"{_fmt(d.fat_g)} g", 3)
+                if is_compact_55x90:
+                    _draw_compact_55x90_card(
+                        c,
+                        d,
+                        x0=x0,
+                        y0=y0,
+                        card_w=card_w,
+                        card_h=card_h,
+                        assets=assets,
+                        layout=layout,
+                        should_draw_logo=should_draw_logo,
+                        latin_font_bold=latin_font_bold,
+                        arabic_font_bold=arabic_font_bold,
+                    )
+                else:
+                    _draw_standard_card(
+                        c,
+                        d,
+                        x0=x0,
+                        y0=y0,
+                        card_w=card_w,
+                        card_h=card_h,
+                        assets=assets,
+                        layout=layout,
+                        should_draw_logo=should_draw_logo,
+                        latin_font_regular=latin_font_regular,
+                        latin_font_bold=latin_font_bold,
+                        arabic_font_bold=arabic_font_bold,
+                    )
 
             if idx >= len(dish_list):
                 break

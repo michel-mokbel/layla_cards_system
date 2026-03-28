@@ -5,3 +5,5 @@ pillow
 certifi
 arabic-reshaper
 python-bidi
+firebase-admin
+pymupdf
