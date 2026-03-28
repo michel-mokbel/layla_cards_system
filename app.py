@@ -357,6 +357,11 @@ def _auto_seed_enabled() -> bool:
     return _to_bool(val, default=True)
 
 
+def _layout_tuner_visible() -> bool:
+    val = _get_secret_value("SHOW_LAYOUT_TUNER")
+    return _to_bool(val, default=True)
+
+
 def _seed_firestore_from_csv_if_empty() -> bool:
     global _FIRESTORE_BOOTSTRAP_MSG
     if _FIRESTORE_CLIENT is None:
@@ -599,9 +604,13 @@ assets = AssetPaths(
     font_arabic_bold=default_arabic_bold_font,
 )
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Generate Cards PDF", "Buffet A4 Menu", "Dish Database", "Add Dish (Auto-fill)", "Layout Tuner"]
-)
+layout_tuner_visible = _layout_tuner_visible()
+tab_labels = ["Generate Cards PDF", "Buffet A4 Menu", "Dish Database", "Add Dish (Auto-fill)"]
+if layout_tuner_visible:
+    tab_labels.append("Layout Tuner")
+tabs = st.tabs(tab_labels)
+tab1, tab2, tab3, tab4 = tabs[:4]
+tab5 = tabs[4] if layout_tuner_visible else None
 
 
 with tab1:
@@ -912,138 +921,139 @@ with tab4:
                 "Tip: put an Arabic TTF in assets/fonts/ so the PDF renders Arabic correctly."
             )
 
-with tab5:
-    st.subheader("Layout Tuner (No code)")
-    st.caption("Change values, save, then generate a PDF to test alignment.")
+if layout_tuner_visible and tab5 is not None:
+    with tab5:
+        st.subheader("Layout Tuner (No code)")
+        st.caption("Change values, save, then generate a PDF to test alignment.")
 
-    profile = st.selectbox(
-        "Profile",
-        options=["Full (with macros)", "Names + Nutriments (no macros)", "5.5 x 9.0 cm cards"],
-        index=0,
-        key="layout_tuner_profile",
-    )
-    if "5.5 x 9.0" in profile.lower():
-        active_layout_path = LAYOUT_55X90_JSON
-    elif "no macros" in profile.lower():
-        active_layout_path = LAYOUT_NO_MACROS_JSON
-    else:
-        active_layout_path = LAYOUT_JSON
-    layout = _load_layout_dict(active_layout_path)
-    preview_dishes = _select_preview_dishes(df, layout)
-    preview_dish_names = [dish.name_en for dish in preview_dishes]
-
-    col1, col2 = st.columns(2)
-    with col1:
-        layout["grid_x_mm"] = st.number_input("grid_x_mm", value=float(layout["grid_x_mm"]), step=0.1)
-        layout["grid_y_mm"] = st.number_input("grid_y_mm", value=float(layout["grid_y_mm"]), step=0.1)
-        layout["grid_gap_x_mm"] = st.number_input("grid_gap_x_mm", value=float(layout.get("grid_gap_x_mm", 0.0)), step=0.1)
-        layout["grid_gap_y_mm"] = st.number_input("grid_gap_y_mm", value=float(layout.get("grid_gap_y_mm", 0.0)), step=0.1)
-        layout["auto_center_grid"] = st.checkbox("auto_center_grid", value=bool(layout.get("auto_center_grid", False)))
-        layout["card_w_mm"] = st.number_input("card_w_mm", value=float(layout["card_w_mm"]), step=0.1)
-        layout["card_h_mm"] = st.number_input("card_h_mm", value=float(layout["card_h_mm"]), step=0.1)
-        layout["dish_x_offset_mm"] = st.number_input(
-            "dish_x_offset_mm", value=float(layout["dish_x_offset_mm"]), step=0.1
+        profile = st.selectbox(
+            "Profile",
+            options=["Full (with macros)", "Names + Nutriments (no macros)", "5.5 x 9.0 cm cards"],
+            index=0,
+            key="layout_tuner_profile",
         )
-        layout["dish_box_width_mm"] = st.number_input(
-            "dish_box_width_mm", value=float(layout["dish_box_width_mm"]), step=0.1
-        )
-        layout["dish_en_y_mm"] = st.number_input("dish_en_y_mm", value=float(layout["dish_en_y_mm"]), step=0.1)
-        layout["dish_ar_gap_mm"] = st.number_input("dish_ar_gap_mm", value=float(layout["dish_ar_gap_mm"]), step=0.1)
-        layout["dish_en_size"] = st.number_input("dish_en_size", value=float(layout["dish_en_size"]), step=0.1)
-        layout["dish_ar_size"] = st.number_input("dish_ar_size", value=float(layout["dish_ar_size"]), step=0.1)
-        layout["show_macros"] = st.checkbox("show_macros", value=bool(layout.get("show_macros", True)))
-    with col2:
-        layout["draw_grid_lines"] = st.checkbox("draw_grid_lines", value=bool(layout["draw_grid_lines"]))
-        layout["draw_logo"] = st.checkbox("draw_logo", value=bool(layout.get("draw_logo", False)))
-        layout["logo_x_offset_mm"] = st.number_input("logo_x_offset_mm", value=float(layout.get("logo_x_offset_mm", 34.4)), step=0.1)
-        layout["logo_y_offset_mm"] = st.number_input("logo_y_offset_mm", value=float(layout.get("logo_y_offset_mm", 53.2)), step=0.1)
-        layout["logo_w_mm"] = st.number_input("logo_w_mm", value=float(layout.get("logo_w_mm", 30.0)), step=0.1)
-        layout["logo_h_mm"] = st.number_input("logo_h_mm", value=float(layout.get("logo_h_mm", 18.0)), step=0.1)
-        layout["icon_x_offset_mm"] = st.number_input("icon_x_offset_mm", value=float(layout["icon_x_offset_mm"]), step=0.1)
-        layout["icon_y_offset_mm"] = st.number_input("icon_y_offset_mm", value=float(layout["icon_y_offset_mm"]), step=0.1)
-        layout["icon_size_mm"] = st.number_input("icon_size_mm", value=float(layout["icon_size_mm"]), step=0.1)
-        layout["icon_gap_mm"] = st.number_input("icon_gap_mm", value=float(layout["icon_gap_mm"]), step=0.1)
-        layout["macro_x_offset_mm"] = st.number_input(
-            "macro_x_offset_mm", value=float(layout["macro_x_offset_mm"]), step=0.1
-        )
-        layout["macro_y_top_mm"] = st.number_input("macro_y_top_mm", value=float(layout["macro_y_top_mm"]), step=0.1)
-        layout["macro_line_gap_mm"] = st.number_input(
-            "macro_line_gap_mm", value=float(layout["macro_line_gap_mm"]), step=0.1
-        )
-        layout["macro_size"] = st.number_input("macro_size", value=float(layout["macro_size"]), step=0.1)
+        if "5.5 x 9.0" in profile.lower():
+            active_layout_path = LAYOUT_55X90_JSON
+        elif "no macros" in profile.lower():
+            active_layout_path = LAYOUT_NO_MACROS_JSON
+        else:
+            active_layout_path = LAYOUT_JSON
+        layout = _load_layout_dict(active_layout_path)
+        preview_dishes = _select_preview_dishes(df, layout)
+        preview_dish_names = [dish.name_en for dish in preview_dishes]
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Save Layout", type="primary"):
-            active_layout_path.write_text(json.dumps(layout, indent=2), encoding="utf-8")
-            st.success(f"Saved: {active_layout_path}")
-            st.rerun()
-    with c2:
-        if st.button("Reset Layout"):
-            defaults = default_layout_dict()
-            if "5.5 x 9.0" in profile.lower():
-                defaults.update(
-                    {
-                        "layout_variant": "compact_55x90",
-                        "cols": 2,
-                        "rows": 4,
-                        "grid_gap_x_mm": 5.0,
-                        "grid_gap_y_mm": 5.0,
-                        "auto_center_grid": True,
-                        "card_w_mm": 90.0,
-                        "card_h_mm": 55.0,
-                        "draw_logo": True,
-                        "show_macros": False,
-                        "logo_w_mm": 26.0,
-                        "logo_h_mm": 26.0,
-                        "dish_x_offset_mm": 27.0,
-                        "dish_box_width_mm": 61.0,
-                        "dish_en_size": 15.5,
-                        "dish_ar_size": 13.5,
-                        "icon_size_mm": 12.5,
-                        "icon_gap_mm": 3.2,
-                    }
-                )
-            elif "no macros" in profile.lower():
-                defaults.update(
-                    {
-                        "show_macros": False,
-                        "dish_box_width_mm": 98.8,
-                        "dish_en_y_mm": 45.0,
-                        "dish_ar_gap_mm": 8.6,
-                        "dish_en_size": 16.0,
-                        "dish_ar_size": 15.0,
-                        "icon_size_mm": 13.2,
-                        "icon_gap_mm": 5.0,
-                        "icon_y_offset_mm": 20.0,
-                    }
-                )
-            active_layout_path.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
-            st.success("Layout reset to defaults.")
-            st.rerun()
-
-    st.markdown("### Live Preview")
-    st.caption(f"Sample dishes: {', '.join(preview_dish_names) if preview_dish_names else 'No dishes available'}")
-    preview_col1, preview_col2 = st.columns([1, 3])
-    with preview_col1:
-        update_preview = st.button("Update Preview", key="layout_tuner_update_preview")
-    with preview_col2:
-        st.caption("Preview shows the first rendered A4 page using the current in-memory tuner values.")
-
-    preview_state_key = f"layout_preview::{active_layout_path.name}"
-    if update_preview:
-        try:
-            preview_bytes = _render_layout_preview(
-                json.dumps(layout, sort_keys=True),
-                json.dumps([dish.__dict__ for dish in preview_dishes], ensure_ascii=False, sort_keys=True),
+        col1, col2 = st.columns(2)
+        with col1:
+            layout["grid_x_mm"] = st.number_input("grid_x_mm", value=float(layout["grid_x_mm"]), step=0.1)
+            layout["grid_y_mm"] = st.number_input("grid_y_mm", value=float(layout["grid_y_mm"]), step=0.1)
+            layout["grid_gap_x_mm"] = st.number_input("grid_gap_x_mm", value=float(layout.get("grid_gap_x_mm", 0.0)), step=0.1)
+            layout["grid_gap_y_mm"] = st.number_input("grid_gap_y_mm", value=float(layout.get("grid_gap_y_mm", 0.0)), step=0.1)
+            layout["auto_center_grid"] = st.checkbox("auto_center_grid", value=bool(layout.get("auto_center_grid", False)))
+            layout["card_w_mm"] = st.number_input("card_w_mm", value=float(layout["card_w_mm"]), step=0.1)
+            layout["card_h_mm"] = st.number_input("card_h_mm", value=float(layout["card_h_mm"]), step=0.1)
+            layout["dish_x_offset_mm"] = st.number_input(
+                "dish_x_offset_mm", value=float(layout["dish_x_offset_mm"]), step=0.1
             )
-            st.session_state[preview_state_key] = preview_bytes
-            st.session_state[f"{preview_state_key}::names"] = preview_dish_names
-        except Exception as e:
-            st.error(f"Preview generation failed: {e}")
+            layout["dish_box_width_mm"] = st.number_input(
+                "dish_box_width_mm", value=float(layout["dish_box_width_mm"]), step=0.1
+            )
+            layout["dish_en_y_mm"] = st.number_input("dish_en_y_mm", value=float(layout["dish_en_y_mm"]), step=0.1)
+            layout["dish_ar_gap_mm"] = st.number_input("dish_ar_gap_mm", value=float(layout["dish_ar_gap_mm"]), step=0.1)
+            layout["dish_en_size"] = st.number_input("dish_en_size", value=float(layout["dish_en_size"]), step=0.1)
+            layout["dish_ar_size"] = st.number_input("dish_ar_size", value=float(layout["dish_ar_size"]), step=0.1)
+            layout["show_macros"] = st.checkbox("show_macros", value=bool(layout.get("show_macros", True)))
+        with col2:
+            layout["draw_grid_lines"] = st.checkbox("draw_grid_lines", value=bool(layout["draw_grid_lines"]))
+            layout["draw_logo"] = st.checkbox("draw_logo", value=bool(layout.get("draw_logo", False)))
+            layout["logo_x_offset_mm"] = st.number_input("logo_x_offset_mm", value=float(layout.get("logo_x_offset_mm", 34.4)), step=0.1)
+            layout["logo_y_offset_mm"] = st.number_input("logo_y_offset_mm", value=float(layout.get("logo_y_offset_mm", 53.2)), step=0.1)
+            layout["logo_w_mm"] = st.number_input("logo_w_mm", value=float(layout.get("logo_w_mm", 30.0)), step=0.1)
+            layout["logo_h_mm"] = st.number_input("logo_h_mm", value=float(layout.get("logo_h_mm", 18.0)), step=0.1)
+            layout["icon_x_offset_mm"] = st.number_input("icon_x_offset_mm", value=float(layout["icon_x_offset_mm"]), step=0.1)
+            layout["icon_y_offset_mm"] = st.number_input("icon_y_offset_mm", value=float(layout["icon_y_offset_mm"]), step=0.1)
+            layout["icon_size_mm"] = st.number_input("icon_size_mm", value=float(layout["icon_size_mm"]), step=0.1)
+            layout["icon_gap_mm"] = st.number_input("icon_gap_mm", value=float(layout["icon_gap_mm"]), step=0.1)
+            layout["macro_x_offset_mm"] = st.number_input(
+                "macro_x_offset_mm", value=float(layout["macro_x_offset_mm"]), step=0.1
+            )
+            layout["macro_y_top_mm"] = st.number_input("macro_y_top_mm", value=float(layout["macro_y_top_mm"]), step=0.1)
+            layout["macro_line_gap_mm"] = st.number_input(
+                "macro_line_gap_mm", value=float(layout["macro_line_gap_mm"]), step=0.1
+            )
+            layout["macro_size"] = st.number_input("macro_size", value=float(layout["macro_size"]), step=0.1)
 
-    preview_bytes = st.session_state.get(preview_state_key)
-    if preview_bytes:
-        st.image(preview_bytes, caption="Layout preview: rendered first page", use_container_width=True)
-    else:
-        st.info("Click `Update Preview` to render the current layout settings.")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Save Layout", type="primary"):
+                active_layout_path.write_text(json.dumps(layout, indent=2), encoding="utf-8")
+                st.success(f"Saved: {active_layout_path}")
+                st.rerun()
+        with c2:
+            if st.button("Reset Layout"):
+                defaults = default_layout_dict()
+                if "5.5 x 9.0" in profile.lower():
+                    defaults.update(
+                        {
+                            "layout_variant": "compact_55x90",
+                            "cols": 2,
+                            "rows": 4,
+                            "grid_gap_x_mm": 5.0,
+                            "grid_gap_y_mm": 5.0,
+                            "auto_center_grid": True,
+                            "card_w_mm": 90.0,
+                            "card_h_mm": 55.0,
+                            "draw_logo": True,
+                            "show_macros": False,
+                            "logo_w_mm": 26.0,
+                            "logo_h_mm": 26.0,
+                            "dish_x_offset_mm": 27.0,
+                            "dish_box_width_mm": 61.0,
+                            "dish_en_size": 15.5,
+                            "dish_ar_size": 13.5,
+                            "icon_size_mm": 12.5,
+                            "icon_gap_mm": 3.2,
+                        }
+                    )
+                elif "no macros" in profile.lower():
+                    defaults.update(
+                        {
+                            "show_macros": False,
+                            "dish_box_width_mm": 98.8,
+                            "dish_en_y_mm": 45.0,
+                            "dish_ar_gap_mm": 8.6,
+                            "dish_en_size": 16.0,
+                            "dish_ar_size": 15.0,
+                            "icon_size_mm": 13.2,
+                            "icon_gap_mm": 5.0,
+                            "icon_y_offset_mm": 20.0,
+                        }
+                    )
+                active_layout_path.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
+                st.success("Layout reset to defaults.")
+                st.rerun()
+
+        st.markdown("### Live Preview")
+        st.caption(f"Sample dishes: {', '.join(preview_dish_names) if preview_dish_names else 'No dishes available'}")
+        preview_col1, preview_col2 = st.columns([1, 3])
+        with preview_col1:
+            update_preview = st.button("Update Preview", key="layout_tuner_update_preview")
+        with preview_col2:
+            st.caption("Preview shows the first rendered A4 page using the current in-memory tuner values.")
+
+        preview_state_key = f"layout_preview::{active_layout_path.name}"
+        if update_preview:
+            try:
+                preview_bytes = _render_layout_preview(
+                    json.dumps(layout, sort_keys=True),
+                    json.dumps([dish.__dict__ for dish in preview_dishes], ensure_ascii=False, sort_keys=True),
+                )
+                st.session_state[preview_state_key] = preview_bytes
+                st.session_state[f"{preview_state_key}::names"] = preview_dish_names
+            except Exception as e:
+                st.error(f"Preview generation failed: {e}")
+
+        preview_bytes = st.session_state.get(preview_state_key)
+        if preview_bytes:
+            st.image(preview_bytes, caption="Layout preview: rendered first page", use_container_width=True)
+        else:
+            st.info("Click `Update Preview` to render the current layout settings.")
