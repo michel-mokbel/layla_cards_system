@@ -1144,7 +1144,7 @@ def _draw_greeting_label_card(
     inner_h = card_h
 
     if style == GREETING_LABEL_STYLE_PLAYFUL:
-        c.setFillColor(colors.Color(1.0, 0.98, 0.94))
+        c.setFillColor(colors.Color(1.0, 1.0, 1.0))
         c.rect(inner_x, inner_y, inner_w, inner_h, stroke=0, fill=1)
 
         _draw_egg(c, x=inner_x + (6.0 * mm), y=inner_y + inner_h - (19.5 * mm), w=9.0 * mm, h=12.0 * mm, fill=butter, stripe=peach)
@@ -1157,7 +1157,7 @@ def _draw_greeting_label_card(
         logo_h = 20.0 * mm
         logo_y = y0 + card_h - (24.0 * mm)
     else:
-        c.setFillColor(colors.Color(0.97, 0.94, 0.88))
+        c.setFillColor(colors.Color(1.0, 1.0, 1.0))
         c.rect(inner_x, inner_y, inner_w, inner_h, stroke=0, fill=1)
 
         _draw_egg(c, x=inner_x + (6.5 * mm), y=inner_y + (4.2 * mm), w=8.8 * mm, h=11.8 * mm, fill=blush, stripe=white)
