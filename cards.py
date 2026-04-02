@@ -1209,9 +1209,6 @@ def _draw_greeting_label_card(
         center_y=name_center_y,
     )
 
-    c.setStrokeColor(colors.Color(0.87, 0.80, 0.67))
-    c.setLineWidth(0.7)
-    c.line(x0 + (19.0 * mm), divider_y, x0 + card_w - (19.0 * mm), divider_y)
     c.setFillColor(warm_brown)
     _draw_centered_text(
         c=c,
@@ -1244,12 +1241,8 @@ def generate_greeting_labels_pdf(
 
     latin_font_regular, latin_font_bold, _arabic_font_regular, _arabic_font_bold = _register_fonts(assets)
 
-    card_w = _GREETING_LABEL_CELL_W_MM * mm
-    row_heights = [row_h_mm * mm for row_h_mm in _GREETING_LABEL_ROW_HEIGHTS_MM]
-    grid_w = _GREETING_LABEL_COLS * card_w
-    grid_h = sum(row_heights)
-    grid_x = (page_w - grid_w) / 2.0
-    grid_y = (page_h - grid_h) / 2.0
+    card_w = page_w / _GREETING_LABEL_COLS
+    row_heights = [page_h / _GREETING_LABEL_ROWS] * _GREETING_LABEL_ROWS
     per_page = _GREETING_LABEL_COLS * _GREETING_LABEL_ROWS
 
     if not label_list:
@@ -1260,14 +1253,14 @@ def generate_greeting_labels_pdf(
         c.setFillColor(colors.Color(1.0, 1.0, 1.0))
         c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
 
-        top_cursor = page_h - grid_y
+        top_cursor = page_h
         label_idx = 0
         for row_h in row_heights:
             top_cursor -= row_h
             for col in range(_GREETING_LABEL_COLS):
                 if label_idx >= len(page_labels):
                     break
-                x0 = grid_x + (col * card_w)
+                x0 = col * card_w
                 _draw_greeting_label_card(
                     c,
                     page_labels[label_idx],
