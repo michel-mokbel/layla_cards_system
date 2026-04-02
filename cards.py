@@ -1217,7 +1217,7 @@ def _draw_greeting_label_card(
         c=c,
         text="With love, Layla Kitchen",
         font_name=latin_font_regular,
-        font_size=8.2 if style == GREETING_LABEL_STYLE_CLEAN else 8.7,
+        font_size=10.2 if style == GREETING_LABEL_STYLE_CLEAN else 8.7,
         center_x=x0 + (card_w / 2.0),
         y=signature_y,
     )
