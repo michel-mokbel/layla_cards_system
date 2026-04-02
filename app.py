@@ -11,20 +11,39 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import date
 import json
+import math
 import os
 from pathlib import Path
 import tempfile
 import pandas as pd
 import streamlit as st
 
+from ai_recipe_studio import (
+    GenerationRequest,
+    GeneratedDishDraft,
+    approve_drafts,
+    dish_record_from_draft,
+    evaluate_draft,
+    generate_dish_drafts,
+    load_drafts,
+    reject_drafts,
+    request_from_draft,
+    save_draft_batch,
+    validate_draft,
+)
+from idea_center import IDEA_PRESETS, IdeaPreset
 from cards import (
     AssetPaths,
     Dish,
+    GREETING_LABEL_STYLE_CLEAN,
+    GREETING_LABEL_STYLE_PLAYFUL,
     LayoutConfig,
     default_layout_dict,
     generate_buffet_menu_pdf,
     generate_cards_pdf,
+    generate_greeting_labels_pdf,
     load_layout_config,
+    parse_greeting_label_names,
 )
 from enrich import enrich_dish_name, openai_configured, openrouter_configured
 
@@ -55,6 +74,7 @@ TEMPLATE_PAGE = ASSETS_DIR / "template_page.png"
 
 OUT_DIR = BASE_DIR / "out"
 OUT_DIR.mkdir(exist_ok=True)
+DRAFTS_JSON = BASE_DIR / "data" / "generated_dish_drafts.json"
 
 REQUIRED_COLS = [
     "name_en",
@@ -431,7 +451,7 @@ def _save_candidate_rows(
     *,
     overwrite_if_exists: bool,
     backend: str,
-) -> tuple[int, int, list[str], list[str]]:
+) -> tuple[int, int, list[str], list[str], list[str]]:
     current, _ = _load_dishes()
     if "name_en" not in current.columns:
         raise ValueError("Dish schema is invalid: missing name_en.")
@@ -441,6 +461,7 @@ def _save_candidate_rows(
     updated = 0
     skipped: list[str] = []
     errors: list[str] = []
+    saved_names: list[str] = []
 
     for record in records:
         new_row = {k: record.get(k, "") for k in REQUIRED_COLS}
@@ -466,6 +487,7 @@ def _save_candidate_rows(
                     _upsert_dish_to_firestore(normalized_row)
                 working.loc[matches.idxmax(), REQUIRED_COLS] = [normalized_row[c] for c in REQUIRED_COLS]
                 updated += 1
+                saved_names.append(name_en)
             else:
                 if backend == "firebase" and _FIRESTORE_CLIENT is not None:
                     _upsert_dish_to_firestore(normalized_row)
@@ -473,6 +495,7 @@ def _save_candidate_rows(
                 updated_row = working.tail(1)
                 working.loc[updated_row.index[0], REQUIRED_COLS] = [normalized_row[c] for c in REQUIRED_COLS]
                 added += 1
+                saved_names.append(name_en)
         except Exception as e:
             errors.append(f"{name_en}: {e}")
 
@@ -480,7 +503,133 @@ def _save_candidate_rows(
         if added or updated:
             _save_dishes(working, backend)
 
-    return added, updated, skipped, errors
+    return added, updated, skipped, errors, saved_names
+
+
+def _firebase_drafts_collection_name() -> str:
+    value = _get_secret_value("FIREBASE_DRAFTS_COLLECTION")
+    if value:
+        return str(value).strip() or "generated_dish_drafts"
+    return "generated_dish_drafts"
+
+
+def _draft_storage_kwargs() -> dict[str, object]:
+    if _FIRESTORE_CLIENT is not None:
+        return {"firestore_collection": _FIRESTORE_CLIENT.collection(_firebase_drafts_collection_name())}
+    return {"storage_path": DRAFTS_JSON}
+
+
+def _load_recipe_drafts() -> list[GeneratedDishDraft]:
+    return load_drafts(**_draft_storage_kwargs())
+
+
+def _save_recipe_drafts(drafts: list[GeneratedDishDraft]) -> None:
+    save_draft_batch(drafts, **_draft_storage_kwargs())
+
+
+def _replace_draft_in_list(
+    drafts: list[GeneratedDishDraft],
+    updated_drafts: list[GeneratedDishDraft],
+) -> list[GeneratedDishDraft]:
+    updated_by_id = {draft.draft_id: draft for draft in updated_drafts}
+    merged = [updated_by_id.get(draft.draft_id, draft) for draft in drafts]
+    for draft in updated_drafts:
+        if draft.draft_id not in {item.draft_id for item in drafts}:
+            merged.append(draft)
+    return sorted(merged, key=lambda draft: draft.created_at, reverse=True)
+
+
+def _draft_from_payload(payload: dict[str, object]) -> GeneratedDishDraft:
+    return GeneratedDishDraft.from_dict(payload)
+
+
+def _coerce_optional_filter(value: str) -> str | None:
+    cleaned = str(value or "").strip().lower()
+    return None if cleaned in {"", "any"} else cleaned
+
+
+def _label_for_filter(value: str | None) -> str:
+    return "Any" if not value else value
+
+
+def _apply_idea_preset_to_state(preset: IdeaPreset) -> None:
+    st.session_state["ai_recipe_brief"] = preset.prompt
+    st.session_state["ai_recipe_count"] = int(preset.count)
+    st.session_state["ai_recipe_protein_filter"] = _label_for_filter(preset.protein_type)
+    st.session_state["ai_recipe_gluten_filter"] = _label_for_filter(preset.gluten)
+    st.session_state["ai_recipe_dairy_filter"] = _label_for_filter(preset.dairy)
+
+
+def _generate_recipe_drafts_for_request(
+    generation_request: GenerationRequest,
+    existing_drafts: list[GeneratedDishDraft],
+    existing_dish_names: list[str],
+) -> list[GeneratedDishDraft]:
+    existing_names = list(existing_dish_names) + [
+        str(draft.dish.get("name_en", "")).strip()
+        for draft in existing_drafts
+        if draft.status in {"review_ready", "needs_attention", "approved"}
+    ]
+    new_drafts = generate_dish_drafts(generation_request, existing_dish_names=existing_names)
+    merged = _replace_draft_in_list(existing_drafts, new_drafts)
+    _save_recipe_drafts(merged)
+    return new_drafts
+
+
+def _review_status_for_draft(draft: GeneratedDishDraft) -> str:
+    if draft.status in {"approved", "rejected", "superseded"}:
+        return draft.status
+    return "review_ready" if draft.validation.passed else "needs_attention"
+
+
+def _sync_editor_rows_to_drafts(
+    drafts: list[GeneratedDishDraft],
+    edited_df: pd.DataFrame,
+    existing_names: list[str],
+) -> list[GeneratedDishDraft]:
+    if edited_df.empty:
+        return drafts
+
+    rows_by_id = {
+        str(row.get("draft_id", "")).strip(): row
+        for _, row in edited_df.iterrows()
+        if str(row.get("draft_id", "")).strip()
+    }
+    active_statuses = {"review_ready", "needs_attention"}
+    reserved_names = {str(name).strip().lower() for name in existing_names if str(name).strip()}
+    updated: list[GeneratedDishDraft] = []
+
+    for draft in sorted(drafts, key=lambda item: item.created_at):
+        if draft.draft_id not in rows_by_id or draft.status not in active_statuses:
+            updated.append(draft)
+            continue
+
+        row = rows_by_id[draft.draft_id]
+        payload = draft.to_dict()
+        payload["dish"] = {
+            "name_en": str(row.get("name_en", "")).strip(),
+            "name_ar": str(row.get("name_ar", "")).strip(),
+            "calories_kcal": float(row.get("calories_kcal", 0) or 0),
+            "carbs_g": float(row.get("carbs_g", 0) or 0),
+            "protein_g": float(row.get("protein_g", 0) or 0),
+            "fat_g": float(row.get("fat_g", 0) or 0),
+            "gluten": str(row.get("gluten", "gluten_free")).strip() or "gluten_free",
+            "protein_type": str(row.get("protein_type", "veg")).strip() or "veg",
+            "dairy": str(row.get("dairy", "dairy_free")).strip() or "dairy_free",
+        }
+        candidate = _draft_from_payload(payload)
+        validation = validate_draft(candidate, reserved_names=reserved_names)
+        evaluation = evaluate_draft(candidate, request_from_draft(candidate))
+        updated_payload = candidate.to_dict()
+        updated_payload["validation"] = validation.to_dict()
+        updated_payload["evaluation"] = evaluation.to_dict()
+        updated_payload["status"] = "review_ready" if validation.passed else "needs_attention"
+        updated_draft = _draft_from_payload(updated_payload)
+        if validation.passed:
+            reserved_names.add(str(updated_draft.dish.get("name_en", "")).strip().lower())
+        updated.append(updated_draft)
+
+    return sorted(updated, key=lambda draft: draft.created_at, reverse=True)
 
 
 st.set_page_config(page_title="Layla Cards Generator", layout="wide")
@@ -490,7 +639,7 @@ st.title("Layla Cards Generator")
 df, dishes_backend = _load_dishes()
 db = _dish_db_from_df(df)
 if dishes_backend == "firebase":
-    st.caption("Data backend: Firebase Firestore")
+    # st.caption("Data backend: Firebase Firestore")
     if _FIRESTORE_BOOTSTRAP_MSG:
         st.info(_FIRESTORE_BOOTSTRAP_MSG)
 else:
@@ -605,15 +754,35 @@ assets = AssetPaths(
 )
 
 layout_tuner_visible = _layout_tuner_visible()
-tab_labels = ["Generate Cards PDF", "Buffet A4 Menu", "Dish Database", "Add Dish (Auto-fill)"]
+workspace_options = [
+    "Generate Cards PDF",
+    "Easter Greeting Labels",
+    "Buffet A4 Menu",
+    "Dish Database",
+    "Add Dish (Auto-fill)",
+    "Idea Center",
+    "AI Recipe Studio",
+]
 if layout_tuner_visible:
-    tab_labels.append("Layout Tuner")
-tabs = st.tabs(tab_labels)
-tab1, tab2, tab3, tab4 = tabs[:4]
-tab5 = tabs[4] if layout_tuner_visible else None
+    workspace_options.append("Layout Tuner")
+default_workspace = (
+    st.session_state.get("active_workspace")
+    if st.session_state.get("active_workspace") in workspace_options
+    else workspace_options[0]
+)
+active_workspace = st.segmented_control(
+    "Workspace",
+    options=workspace_options,
+    selection_mode="single",
+    default=default_workspace,
+    key="workspace_selector",
+)
+if not active_workspace:
+    active_workspace = default_workspace
+st.session_state["active_workspace"] = active_workspace
 
 
-with tab1:
+if active_workspace == "Generate Cards PDF":
     st.subheader("1) Choose dishes")
     names = sorted(df["name_en"].tolist())
     selected = st.multiselect("Dishes", names, default=[])
@@ -674,7 +843,81 @@ with tab1:
                 use_container_width=True,
             )
 
-with tab2:
+if active_workspace == "Easter Greeting Labels":
+    st.subheader("Easter Greeting Labels")
+    st.caption("Paste client names one per line. The app will place one name per card on a Word-sized 2 × 5 A4 label sheet.")
+
+    colA, colB = st.columns([1.1, 0.9])
+    with colA:
+        raw_client_names = st.text_area(
+            "Client names",
+            value=st.session_state.get("easter_greeting_names", ""),
+            height=320,
+            placeholder="MOI\nOPERATORS\nMARSHALLS\nLEKHWIYA",
+            key="easter_greeting_names",
+        )
+        greeting_labels = parse_greeting_label_names(raw_client_names)
+        if greeting_labels:
+            preview_names = ", ".join(label.name for label in greeting_labels[:6])
+            if len(greeting_labels) > 6:
+                preview_names += ", ..."
+            st.caption(f"{len(greeting_labels)} names parsed. Preview: {preview_names}")
+        else:
+            st.info("Paste at least one client name to generate labels.")
+
+    with colB:
+        style_label = st.selectbox(
+            "Style",
+            options=["Clean Brand Pastel", "Playful Graphic-Heavy"],
+            index=0,
+            key="easter_greeting_style",
+        )
+        style_value = (
+            GREETING_LABEL_STYLE_CLEAN
+            if style_label == "Clean Brand Pastel"
+            else GREETING_LABEL_STYLE_PLAYFUL
+        )
+        per_page = 10
+        page_count = max(1, math.ceil(len(greeting_labels) / per_page)) if greeting_labels else 0
+        st.caption(f"Sheet capacity: {per_page} labels per page")
+        if greeting_labels:
+            st.caption(f"Estimated pages: {page_count}")
+
+        greeting_filename = st.text_input(
+            "Output filename",
+            value="layla_easter_labels.pdf",
+            key="easter_greeting_filename",
+        )
+        if style_value == GREETING_LABEL_STYLE_CLEAN:
+            st.caption("Centered brand layout with pastel eggs, floral accents, and a restrained Easter look.")
+        else:
+            st.caption("More decorative Easter layout with bolder color blocks and graphic accents.")
+
+        if st.button("Generate Easter PDF", type="primary", disabled=(len(greeting_labels) == 0), key="easter_greeting_generate"):
+            out_path = OUT_DIR / greeting_filename
+            generate_greeting_labels_pdf(
+                labels=greeting_labels,
+                out_pdf_path=out_path,
+                assets=assets,
+                style=style_value,
+            )
+            st.session_state["easter_greeting_pdf_bytes"] = out_path.read_bytes()
+            st.session_state["easter_greeting_pdf_name"] = out_path.name
+            st.success("Easter greeting PDF generated.")
+
+        easter_pdf_bytes = st.session_state.get("easter_greeting_pdf_bytes")
+        easter_pdf_name = st.session_state.get("easter_greeting_pdf_name", "layla_easter_labels.pdf")
+        if easter_pdf_bytes:
+            st.download_button(
+                "Download Easter PDF",
+                data=easter_pdf_bytes,
+                file_name=easter_pdf_name,
+                mime="application/pdf",
+                use_container_width=True,
+                key="easter_greeting_download",
+            )
+
+if active_workspace == "Buffet A4 Menu":
     st.subheader("Buffet Table Menu")
     st.caption(
         "Create a professional buffet menu PDF with logo, dish name, nutriments, and macros (auto-paginates after 8 items/page)."
@@ -748,7 +991,7 @@ with tab2:
             key="download_buffet_pdf",
         )
 
-with tab3:
+if active_workspace == "Dish Database":
     st.subheader(f"Dish Database ({'Firebase-backed' if dishes_backend == 'firebase' else 'CSV-backed'})")
     st.caption("Edit here, then click Save.")
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
@@ -758,7 +1001,7 @@ with tab3:
         st.success("Saved. Reloading…")
         st.rerun()
 
-with tab4:
+if active_workspace == "Add Dish (Auto-fill)":
     st.subheader("Add a dish")
     st.caption(
         "Enter up to 5 dish names in English, then auto-fill (optional) and review/edit before saving."
@@ -885,7 +1128,7 @@ with tab4:
             if st.button("Save Dishes", type="primary"):
                 try:
                     records_to_save = edited_candidates.to_dict(orient="records")
-                    added, updated, skipped, errors = _save_candidate_rows(
+                    added, updated, skipped, errors, _ = _save_candidate_rows(
                         records_to_save,
                         overwrite_if_exists=bool(overwrite_if_exists),
                         backend=dishes_backend,
@@ -921,8 +1164,440 @@ with tab4:
                 "Tip: put an Arabic TTF in assets/fonts/ so the PDF renders Arabic correctly."
             )
 
-if layout_tuner_visible and tab5 is not None:
-    with tab5:
+st.markdown(
+    """
+    <style>
+    .idea-card {
+        border: 1px solid rgba(49, 51, 63, 0.18);
+        border-radius: 18px;
+        padding: 1rem 1rem 0.9rem;
+        margin-bottom: 1rem;
+        background:
+            linear-gradient(180deg, rgba(250, 246, 239, 0.95), rgba(255, 255, 255, 0.98));
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        height: 320px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .idea-kicker {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #a15c38;
+        margin-bottom: 0.45rem;
+    }
+    .idea-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2c211b;
+        margin-bottom: 0.45rem;
+        line-height: 1.25;
+        min-height: 2.9rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .idea-summary {
+        font-size: 0.92rem;
+        color: #4f4037;
+        margin-bottom: 0.85rem;
+        line-height: 1.45;
+        min-height: 4rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .idea-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-bottom: 0.8rem;
+    }
+    .idea-tag {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        background: rgba(161, 92, 56, 0.12);
+        color: #7b452b;
+        font-size: 0.74rem;
+        font-weight: 600;
+    }
+    .idea-prompt {
+        font-size: 0.85rem;
+        color: #5d5148;
+        line-height: 1.45;
+        display: -webkit-box;
+        -webkit-line-clamp: 6;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .idea-card-body {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .idea-card-spacer {
+        flex: 1 1 auto;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+if active_workspace == "Idea Center":
+    st.subheader("Idea Center")
+    st.caption(
+        "Curated prompt boards for common catering themes. Click a board to open AI Recipe Studio with the prompt pre-filled and generation started automatically."
+    )
+
+    st.markdown(
+        "Browse the boards here, then continue in `AI Recipe Studio` to edit the prompt, review the generated drafts, and approve the best options."
+    )
+
+    board_columns = st.columns(3)
+    for index, preset in enumerate(IDEA_PRESETS):
+        column = board_columns[index % 3]
+        with column:
+            tags_html = "".join(f"<span class='idea-tag'>{tag}</span>" for tag in preset.tags)
+            st.markdown(
+                f"""
+                <div class="idea-card">
+                    <div class="idea-card-body">
+                        <div class="idea-kicker">{preset.audience}</div>
+                        <div class="idea-title">{preset.title}</div>
+                        <div class="idea-summary">{preset.summary}</div>
+                        <div class="idea-tags">{tags_html}</div>
+                        <div class="idea-card-spacer"></div>
+                        <div class="idea-prompt">{preset.prompt}</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Generate Now", key=f"idea_center_generate_{preset.preset_id}", use_container_width=True):
+                _apply_idea_preset_to_state(preset)
+                st.session_state["ai_recipe_autorun_request"] = {
+                    "title": preset.title,
+                    "brief": preset.prompt,
+                    "count": int(preset.count),
+                    "protein_type": preset.protein_type,
+                    "gluten": preset.gluten,
+                    "dairy": preset.dairy,
+                }
+                st.session_state["workspace_selector"] = "AI Recipe Studio"
+                st.session_state["active_workspace"] = "AI Recipe Studio"
+                st.rerun()
+
+if active_workspace == "AI Recipe Studio":
+    st.subheader("AI Recipe Studio")
+    st.caption(
+        "Generate dish ideas, recipe drafts, and review-ready nutriment metadata with validation and scoring."
+    )
+
+    ai_drafts = _load_recipe_drafts()
+  
+
+    if openrouter_configured():
+        st.caption("Generation is enabled via OpenRouter.")
+    elif openai_configured():
+        st.caption("Generation is enabled via OpenAI.")
+    else:
+        st.warning("AI generation is not configured. Set `OPENROUTER_API_KEY` + `OPENROUTER_MODEL` or OpenAI equivalents.")
+
+    pending_autorun = st.session_state.get("ai_recipe_autorun_request")
+    if isinstance(pending_autorun, dict):
+        try:
+            generation_request = GenerationRequest(
+                brief=str(pending_autorun.get("brief", "")),
+                count=int(pending_autorun.get("count", 5) or 5),
+                protein_type=pending_autorun.get("protein_type"),
+                gluten=pending_autorun.get("gluten"),
+                dairy=pending_autorun.get("dairy"),
+            )
+            with st.spinner(f"Generating drafts for {pending_autorun.get('title', 'Idea Center preset')}..."):
+                new_drafts = _generate_recipe_drafts_for_request(
+                    generation_request,
+                    ai_drafts,
+                    list(df["name_en"].astype(str).tolist()),
+                )
+            st.session_state.pop("ai_recipe_autorun_request", None)
+            st.success(f"Generated {len(new_drafts)} draft(s) from {pending_autorun.get('title', 'Idea Center')}.")
+            st.rerun()
+        except Exception as e:
+            st.session_state.pop("ai_recipe_autorun_request", None)
+            st.error(f"Draft generation failed: {e}")
+
+    with st.form("ai_recipe_studio_form"):
+        brief = st.text_area(
+            "Generation brief",
+            value=str(st.session_state.get("ai_recipe_brief", "")),
+            placeholder="Mediterranean high-protein breakfast buffet with elegant grab-and-go options",
+            height=120,
+        )
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+        with col1:
+            candidate_count = st.number_input(
+                "Candidate count",
+                min_value=1,
+                max_value=10,
+                value=int(st.session_state.get("ai_recipe_count", 5)),
+                step=1,
+            )
+        with col2:
+            protein_options = ["Any", "veg", "meat"]
+            protein_default = str(st.session_state.get("ai_recipe_protein_filter", "Any"))
+            protein_filter = st.selectbox(
+                "protein_type",
+                options=protein_options,
+                index=protein_options.index(protein_default) if protein_default in protein_options else 0,
+            )
+        with col3:
+            gluten_options = ["Any", "gluten_free", "gluten"]
+            gluten_default = str(st.session_state.get("ai_recipe_gluten_filter", "Any"))
+            gluten_filter = st.selectbox(
+                "gluten",
+                options=gluten_options,
+                index=gluten_options.index(gluten_default) if gluten_default in gluten_options else 0,
+            )
+        with col4:
+            dairy_options = ["Any", "dairy_free", "dairy"]
+            dairy_default = str(st.session_state.get("ai_recipe_dairy_filter", "Any"))
+            dairy_filter = st.selectbox(
+                "dairy",
+                options=dairy_options,
+                index=dairy_options.index(dairy_default) if dairy_default in dairy_options else 0,
+            )
+        generate_drafts_submit = st.form_submit_button("Generate Drafts", type="primary")
+
+    if generate_drafts_submit:
+        st.session_state["ai_recipe_brief"] = brief
+        st.session_state["ai_recipe_count"] = int(candidate_count)
+        st.session_state["ai_recipe_protein_filter"] = protein_filter
+        st.session_state["ai_recipe_gluten_filter"] = gluten_filter
+        st.session_state["ai_recipe_dairy_filter"] = dairy_filter
+        try:
+            generation_request = GenerationRequest(
+                brief=brief,
+                count=int(candidate_count),
+                protein_type=_coerce_optional_filter(protein_filter),
+                gluten=_coerce_optional_filter(gluten_filter),
+                dairy=_coerce_optional_filter(dairy_filter),
+            )
+            with st.spinner("Generating AI recipe drafts..."):
+                new_drafts = _generate_recipe_drafts_for_request(
+                    generation_request,
+                    ai_drafts,
+                    list(df["name_en"].astype(str).tolist()),
+                )
+            st.success(f"Generated {len(new_drafts)} draft(s).")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Draft generation failed: {e}")
+
+    st.markdown("### Review Queue")
+    editable_drafts = [draft for draft in ai_drafts if draft.status not in {"approved", "rejected", "superseded"}]
+    archived_drafts = [draft for draft in ai_drafts if draft.status in {"approved", "rejected", "superseded"}]
+    status_counts = {}
+    for draft in ai_drafts:
+        status_counts[draft.status] = status_counts.get(draft.status, 0) + 1
+    if status_counts:
+        st.caption(
+            ", ".join(f"{status}: {count}" for status, count in sorted(status_counts.items()))
+        )
+
+    overwrite_generated = st.checkbox("Overwrite existing dishes on approve", value=False, key="ai_recipe_overwrite")
+
+    if editable_drafts:
+        review_rows: list[dict[str, object]] = []
+        for draft in editable_drafts:
+            review_rows.append(
+                {
+                    "select": False,
+                    "draft_id": draft.draft_id,
+                    "status": _review_status_for_draft(draft),
+                    "score": float(draft.evaluation.overall_score),
+                    "attempts": int(draft.attempts),
+                    "name_en": draft.dish.get("name_en", ""),
+                    "name_ar": draft.dish.get("name_ar", ""),
+                    "calories_kcal": float(draft.dish.get("calories_kcal", 0) or 0),
+                    "carbs_g": float(draft.dish.get("carbs_g", 0) or 0),
+                    "protein_g": float(draft.dish.get("protein_g", 0) or 0),
+                    "fat_g": float(draft.dish.get("fat_g", 0) or 0),
+                    "gluten": draft.dish.get("gluten", "gluten_free"),
+                    "protein_type": draft.dish.get("protein_type", "veg"),
+                    "dairy": draft.dish.get("dairy", "dairy_free"),
+                }
+            )
+
+        edited_review = st.data_editor(
+            pd.DataFrame(review_rows),
+            use_container_width=True,
+            hide_index=True,
+            num_rows="fixed",
+            key="ai_recipe_review_editor",
+            column_config={
+                "select": st.column_config.CheckboxColumn("select"),
+                "draft_id": st.column_config.TextColumn("draft_id"),
+                "status": st.column_config.TextColumn("status"),
+                "score": st.column_config.NumberColumn("score", format="%.2f"),
+                "attempts": st.column_config.NumberColumn("attempts", format="%d"),
+                "gluten": st.column_config.SelectboxColumn("gluten", options=["gluten_free", "gluten"]),
+                "protein_type": st.column_config.SelectboxColumn("protein_type", options=["veg", "meat"]),
+                "dairy": st.column_config.SelectboxColumn("dairy", options=["dairy_free", "dairy"]),
+                "calories_kcal": st.column_config.NumberColumn("calories_kcal", min_value=0.0, step=1.0),
+                "carbs_g": st.column_config.NumberColumn("carbs_g", min_value=0.0, step=0.5),
+                "protein_g": st.column_config.NumberColumn("protein_g", min_value=0.0, step=0.5),
+                "fat_g": st.column_config.NumberColumn("fat_g", min_value=0.0, step=0.5),
+            },
+            disabled=["draft_id", "status", "score", "attempts"],
+        )
+        live_drafts = _sync_editor_rows_to_drafts(
+            ai_drafts,
+            edited_review,
+            list(df["name_en"].astype(str).tolist()),
+        )
+
+        c1, c2, c3 = st.columns([1, 1, 1])
+        with c1:
+            if st.button("Save Review Edits", key="ai_recipe_save_edits"):
+                _save_recipe_drafts(live_drafts)
+                st.success("Draft edits saved.")
+                st.rerun()
+        with c2:
+            if st.button("Approve Selected", type="primary", key="ai_recipe_approve_selected"):
+                selected_ids = [
+                    str(row.get("draft_id", "")).strip()
+                    for _, row in edited_review.iterrows()
+                    if bool(row.get("select", False))
+                ]
+                selected_drafts = [draft for draft in live_drafts if draft.draft_id in set(selected_ids)]
+                invalid_drafts = [draft.dish.get("name_en", "") for draft in selected_drafts if not draft.validation.passed]
+                records_to_save = [dish_record_from_draft(draft) for draft in selected_drafts if draft.validation.passed]
+                if not selected_ids:
+                    st.warning("Select at least one draft to approve.")
+                elif not records_to_save:
+                    st.warning("Selected drafts must pass validation before approval.")
+                else:
+                    added, updated, skipped, errors, saved_names = _save_candidate_rows(
+                        records_to_save,
+                        overwrite_if_exists=bool(overwrite_generated),
+                        backend=dishes_backend,
+                    )
+                    if errors:
+                        st.error("Some dishes could not be approved:\n" + "\n".join(errors))
+                    else:
+                        _save_recipe_drafts(live_drafts)
+                        promoted_map = {
+                            draft.draft_id: str(draft.dish.get("name_en", "")).strip()
+                            for draft in selected_drafts
+                            if str(draft.dish.get("name_en", "")).strip() in saved_names
+                        }
+                        approve_drafts(promoted_map.keys(), promoted_names=promoted_map, **_draft_storage_kwargs())
+                        if invalid_drafts:
+                            st.warning("Skipped invalid drafts: " + ", ".join(invalid_drafts))
+                        if skipped:
+                            st.warning("Skipped existing drafts: " + "; ".join(skipped))
+                        st.success(f"Approved {len(promoted_map)} draft(s). Added {added}, updated {updated}.")
+                        st.rerun()
+        with c3:
+            if st.button("Reject Selected", key="ai_recipe_reject_selected"):
+                selected_ids = [
+                    str(row.get("draft_id", "")).strip()
+                    for _, row in edited_review.iterrows()
+                    if bool(row.get("select", False))
+                ]
+                if not selected_ids:
+                    st.warning("Select at least one draft to reject.")
+                else:
+                    _save_recipe_drafts(live_drafts)
+                    reject_drafts(selected_ids, **_draft_storage_kwargs())
+                    st.success(f"Rejected {len(selected_ids)} draft(s).")
+                    st.rerun()
+
+        st.markdown("### Draft Details")
+        detail_drafts = {draft.draft_id: draft for draft in live_drafts}
+        for draft in editable_drafts:
+            current_draft = detail_drafts.get(draft.draft_id, draft)
+            score = float(current_draft.evaluation.overall_score)
+            with st.expander(f"{current_draft.dish.get('name_en', 'Untitled')} · {current_draft.status} · score {score:.2f}"):
+                st.caption(f"Model: {current_draft.source_model} | Attempts: {current_draft.attempts}")
+                recipe = current_draft.recipe
+                st.markdown("**Ingredients**")
+                for ingredient in recipe.get("ingredients", []) or []:
+                    st.write(f"- {ingredient}")
+                st.markdown("**Steps**")
+                for index, step in enumerate(recipe.get("steps", []) or [], start=1):
+                    st.write(f"{index}. {step}")
+                st.caption(f"Yield servings: {recipe.get('yield_servings', 0)}")
+                if current_draft.validation.errors:
+                    st.error("\n".join(current_draft.validation.errors))
+                if current_draft.validation.warnings:
+                    st.warning("\n".join(current_draft.validation.warnings))
+                if current_draft.evaluation.notes:
+                    st.info("\n".join(current_draft.evaluation.notes))
+
+                action_a, action_b, action_c = st.columns([1, 1, 1])
+                with action_a:
+                    if st.button("Approve This Draft", key=f"ai_recipe_approve_{current_draft.draft_id}"):
+                        if not current_draft.validation.passed:
+                            st.warning("This draft still has validation errors.")
+                        else:
+                            _save_recipe_drafts(live_drafts)
+                            added, updated, skipped, errors, saved_names = _save_candidate_rows(
+                                [dish_record_from_draft(current_draft)],
+                                overwrite_if_exists=bool(overwrite_generated),
+                                backend=dishes_backend,
+                            )
+                            if errors:
+                                st.error("Approval failed:\n" + "\n".join(errors))
+                            elif saved_names:
+                                approve_drafts(
+                                    [current_draft.draft_id],
+                                    promoted_names={current_draft.draft_id: saved_names[0]},
+                                    **_draft_storage_kwargs(),
+                                )
+                                if skipped:
+                                    st.warning("Skipped: " + "; ".join(skipped))
+                                st.success(f"Approved draft. Added {added}, updated {updated}.")
+                                st.rerun()
+                            else:
+                                st.warning("Draft was not approved.")
+                with action_b:
+                    if st.button("Reject This Draft", key=f"ai_recipe_reject_{current_draft.draft_id}"):
+                        _save_recipe_drafts(live_drafts)
+                        reject_drafts([current_draft.draft_id], **_draft_storage_kwargs())
+                        st.success("Draft rejected.")
+                        st.rerun()
+                with action_c:
+                    if st.button("Regenerate", key=f"ai_recipe_regenerate_{current_draft.draft_id}"):
+                        try:
+                            _save_recipe_drafts(live_drafts)
+                            regenerated = generate_dish_drafts(
+                                request_from_draft(current_draft),
+                                existing_dish_names=list(df["name_en"].astype(str).tolist()),
+                            )
+                            reject_drafts([current_draft.draft_id], status="superseded", **_draft_storage_kwargs())
+                            _save_recipe_drafts(_replace_draft_in_list(_load_recipe_drafts(), regenerated))
+                            st.success("Draft regenerated.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Regeneration failed: {e}")
+    else:
+        st.info("No active drafts yet. Generate a batch from the brief above.")
+
+    if archived_drafts:
+        with st.expander("Show approved / rejected history"):
+            for draft in archived_drafts:
+                st.write(
+                    f"{draft.created_at} | {draft.status} | {draft.dish.get('name_en', '')} | "
+                    f"approved as: {draft.approved_dish_name or '-'}"
+                )
+
+if layout_tuner_visible and active_workspace == "Layout Tuner":
         st.subheader("Layout Tuner (No code)")
         st.caption("Change values, save, then generate a PDF to test alignment.")
 

@@ -60,6 +60,19 @@ class Dish:
     dairy: str          # "dairy" | "dairy_free"
 
 
+@dataclass(frozen=True)
+class GreetingLabel:
+    name: str
+
+
+GREETING_LABEL_STYLE_CLEAN = "clean_brand_pastel"
+GREETING_LABEL_STYLE_PLAYFUL = "playful_graphic_heavy"
+GREETING_LABEL_STYLES = (
+    GREETING_LABEL_STYLE_CLEAN,
+    GREETING_LABEL_STYLE_PLAYFUL,
+)
+
+
 def load_dishes_csv(csv_path: str | Path) -> Dict[str, Dish]:
     """
     CSV columns expected:
@@ -98,6 +111,15 @@ def load_dishes_csv(csv_path: str | Path) -> Dict[str, Dish]:
             )
             dishes[d.name_en.lower()] = d
     return dishes
+
+
+def parse_greeting_label_names(raw_text: str) -> List[GreetingLabel]:
+    labels: List[GreetingLabel] = []
+    for raw_line in (raw_text or "").splitlines():
+        normalized = " ".join(raw_line.split()).strip()
+        if normalized:
+            labels.append(GreetingLabel(name=normalized))
+    return labels
 
 
 # ---------- Rendering ----------
@@ -973,6 +995,300 @@ def _wrap_arabic_two_lines(text: str, font_name: str, font_size: float, max_widt
         lines_raw[1] = second_raw
 
     return [_try_arabic_shape(line) for line in lines_raw]
+
+
+def _wrap_text_lines(text: str, font_name: str, font_size: float, max_width: float, max_lines: int) -> List[str]:
+    raw = (text or "").strip()
+    if not raw:
+        return [""]
+
+    words = raw.split()
+    if not words:
+        return [raw]
+
+    lines: List[str] = []
+    current: List[str] = []
+    idx = 0
+
+    while idx < len(words):
+        word = words[idx]
+        candidate = " ".join(current + [word]) if current else word
+        if pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
+            current.append(word)
+            idx += 1
+            continue
+
+        if current:
+            lines.append(" ".join(current))
+            current = []
+        else:
+            lines.append(word)
+            idx += 1
+
+        if len(lines) == max_lines:
+            break
+
+    if len(lines) < max_lines and current:
+        lines.append(" ".join(current))
+
+    if idx < len(words) and lines:
+        overflow = " ".join(words[idx:])
+        last_line = f"{lines[-1]} {overflow}".strip()
+        while last_line and pdfmetrics.stringWidth(last_line, font_name, font_size) > max_width:
+            last_line = last_line[:-1].rstrip()
+        lines[-1] = last_line
+
+    return lines[:max_lines]
+
+
+_GREETING_LABEL_COLS = 2
+_GREETING_LABEL_ROWS = 5
+_GREETING_LABEL_COL_TWIP = 5934
+_GREETING_LABEL_ROW_TWIPS = (3456, 3081, 3339, 3518, 3230)
+_GREETING_MM_PER_TWIP = 25.4 / 1440.0
+_GREETING_LABEL_CELL_W_MM = _GREETING_LABEL_COL_TWIP * _GREETING_MM_PER_TWIP
+_GREETING_LABEL_ROW_HEIGHTS_MM = tuple(v * _GREETING_MM_PER_TWIP for v in _GREETING_LABEL_ROW_TWIPS)
+_GREETING_LABEL_TEXT = "Happy Easter"
+
+
+def _draw_egg(c: canvas.Canvas, *, x: float, y: float, w: float, h: float, fill: colors.Color, stripe: Optional[colors.Color] = None) -> None:
+    c.saveState()
+    c.setFillColor(fill)
+    c.setStrokeColor(fill)
+    c.ellipse(x, y, x + w, y + h, stroke=1, fill=1)
+    if stripe is not None:
+        c.setFillColor(stripe)
+        c.setStrokeColor(stripe)
+        c.setLineWidth(1.1)
+        c.line(x + (0.18 * w), y + (0.58 * h), x + (0.82 * w), y + (0.58 * h))
+        c.line(x + (0.25 * w), y + (0.43 * h), x + (0.75 * w), y + (0.43 * h))
+    c.restoreState()
+
+
+def _draw_flower(c: canvas.Canvas, *, center_x: float, center_y: float, petal_r: float, petal_fill: colors.Color, core_fill: colors.Color) -> None:
+    c.saveState()
+    c.setFillColor(petal_fill)
+    c.setStrokeColor(petal_fill)
+    offsets = (
+        (-petal_r, 0.0),
+        (petal_r, 0.0),
+        (0.0, -petal_r),
+        (0.0, petal_r),
+    )
+    for dx, dy in offsets:
+        c.circle(center_x + dx, center_y + dy, petal_r * 0.78, stroke=0, fill=1)
+    c.setFillColor(core_fill)
+    c.setStrokeColor(core_fill)
+    c.circle(center_x, center_y, petal_r * 0.72, stroke=0, fill=1)
+    c.restoreState()
+
+
+def _draw_greeting_logo(
+    c: canvas.Canvas,
+    *,
+    assets: AssetPaths,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+) -> None:
+    logo_path = assets.logo
+    transparent_logo = assets.logo.with_name("logo-no-bg.png")
+    if transparent_logo.exists():
+        logo_path = transparent_logo
+
+    if not logo_path.exists():
+        return
+    try:
+        c.drawImage(
+            ImageReader(str(logo_path)),
+            x,
+            y,
+            width=w,
+            height=h,
+            mask="auto",
+            preserveAspectRatio=True,
+        )
+    except Exception:
+        return
+
+
+def _draw_greeting_label_card(
+    c: canvas.Canvas,
+    label: GreetingLabel,
+    *,
+    x0: float,
+    y0: float,
+    card_w: float,
+    card_h: float,
+    assets: AssetPaths,
+    style: str,
+    latin_font_regular: str,
+    latin_font_bold: str,
+) -> None:
+    soft_green = colors.Color(0.92, 0.97, 0.92)
+    mint = colors.Color(0.86, 0.95, 0.89)
+    blush = colors.Color(0.98, 0.91, 0.92)
+    butter = colors.Color(1.0, 0.95, 0.77)
+    apricot = colors.Color(0.99, 0.82, 0.65)
+    peach = colors.Color(0.98, 0.72, 0.58)
+    lilac = colors.Color(0.88, 0.83, 0.98)
+    sky = colors.Color(0.82, 0.92, 0.99)
+    ink = colors.Color(0.23, 0.19, 0.18)
+    warm_brown = colors.Color(0.47, 0.33, 0.24)
+    white = colors.Color(1.0, 1.0, 1.0)
+    content_pad_x = 7.0 * mm
+    inner_x = x0
+    inner_y = y0
+    inner_w = card_w
+    inner_h = card_h
+
+    if style == GREETING_LABEL_STYLE_PLAYFUL:
+        c.setFillColor(colors.Color(1.0, 0.98, 0.94))
+        c.rect(inner_x, inner_y, inner_w, inner_h, stroke=0, fill=1)
+
+        _draw_egg(c, x=inner_x + (6.0 * mm), y=inner_y + inner_h - (19.5 * mm), w=9.0 * mm, h=12.0 * mm, fill=butter, stripe=peach)
+        _draw_egg(c, x=inner_x + inner_w - (15.0 * mm), y=inner_y + inner_h - (20.2 * mm), w=9.4 * mm, h=12.6 * mm, fill=lilac, stripe=white)
+        _draw_egg(c, x=inner_x + inner_w - (17.0 * mm), y=inner_y + (4.0 * mm), w=10.8 * mm, h=14.2 * mm, fill=apricot, stripe=white)
+        _draw_egg(c, x=inner_x + (5.0 * mm), y=inner_y + (3.2 * mm), w=10.8 * mm, h=14.2 * mm, fill=mint, stripe=white)
+        _draw_flower(c, center_x=inner_x + (20.0 * mm), center_y=inner_y + (8.2 * mm), petal_r=1.7 * mm, petal_fill=blush, core_fill=butter)
+        _draw_flower(c, center_x=inner_x + inner_w - (20.0 * mm), center_y=inner_y + (9.2 * mm), petal_r=1.7 * mm, petal_fill=soft_green, core_fill=butter)
+        logo_w = 28.0 * mm
+        logo_h = 20.0 * mm
+        logo_y = y0 + card_h - (24.0 * mm)
+    else:
+        c.setFillColor(colors.Color(0.97, 0.94, 0.88))
+        c.rect(inner_x, inner_y, inner_w, inner_h, stroke=0, fill=1)
+
+        _draw_egg(c, x=inner_x + (6.5 * mm), y=inner_y + (4.2 * mm), w=8.8 * mm, h=11.8 * mm, fill=blush, stripe=white)
+        _draw_egg(c, x=inner_x + inner_w - (15.2 * mm), y=inner_y + (4.0 * mm), w=8.8 * mm, h=11.8 * mm, fill=butter, stripe=white)
+        _draw_flower(c, center_x=inner_x + (14.0 * mm), center_y=inner_y + inner_h - (7.5 * mm), petal_r=1.5 * mm, petal_fill=soft_green, core_fill=butter)
+        _draw_flower(c, center_x=inner_x + inner_w - (14.0 * mm), center_y=inner_y + inner_h - (7.5 * mm), petal_r=1.5 * mm, petal_fill=blush, core_fill=butter)
+        logo_w = 26.0 * mm
+        logo_h = 18.5 * mm
+        logo_y = y0 + card_h - (22.0 * mm)
+
+    logo_x = x0 + (card_w - logo_w) / 2.0
+    _draw_greeting_logo(c, assets=assets, x=logo_x, y=logo_y, w=logo_w, h=logo_h)
+
+    greeting_font = 12.8 if style == GREETING_LABEL_STYLE_CLEAN else 13.8
+    greeting_y = logo_y - (6.8 * mm)
+    c.setFillColor(warm_brown)
+    _draw_centered_text(
+        c=c,
+        text=_GREETING_LABEL_TEXT,
+        font_name=latin_font_bold,
+        font_size=greeting_font,
+        center_x=x0 + (card_w / 2.0),
+        y=greeting_y,
+    )
+
+    signature_y = y0 + (4.8 * mm)
+    divider_y = signature_y + (2.8 * mm)
+    name_box_top = greeting_y - (3.8 * mm)
+    name_box_bottom = divider_y + (4.5 * mm)
+    name_box_h = max(12.0 * mm, name_box_top - name_box_bottom)
+    name_center_y = name_box_bottom + (name_box_h / 2.0)
+    name_max_width = card_w - (2.0 * content_pad_x)
+    name_lines, name_font_size = _fit_text_block(
+        label.name,
+        wrap_fn=lambda text, font_name, font_size, max_width: _wrap_text_lines(text, font_name, font_size, max_width, 3),
+        font_name=latin_font_bold,
+        max_font_size=16.5 if style == GREETING_LABEL_STYLE_CLEAN else 17.5,
+        min_font_size=10.0,
+        max_width=name_max_width,
+        max_height=name_box_h,
+    )
+    c.setFillColor(ink)
+    _draw_text_lines_centered(
+        c=c,
+        lines=name_lines,
+        font_name=latin_font_bold,
+        font_size=name_font_size,
+        center_x=x0 + (card_w / 2.0),
+        center_y=name_center_y,
+    )
+
+    c.setStrokeColor(colors.Color(0.87, 0.80, 0.67))
+    c.setLineWidth(0.7)
+    c.line(x0 + (19.0 * mm), divider_y, x0 + card_w - (19.0 * mm), divider_y)
+    c.setFillColor(warm_brown)
+    _draw_centered_text(
+        c=c,
+        text="With love, Layla Kitchen",
+        font_name=latin_font_regular,
+        font_size=7.2 if style == GREETING_LABEL_STYLE_CLEAN else 7.7,
+        center_x=x0 + (card_w / 2.0),
+        y=signature_y,
+    )
+
+
+def generate_greeting_labels_pdf(
+    labels: Iterable[GreetingLabel],
+    out_pdf_path: str | Path,
+    assets: AssetPaths,
+    *,
+    style: str = GREETING_LABEL_STYLE_CLEAN,
+    title: str = "Layla Easter Greeting Labels",
+) -> Path:
+    if style not in GREETING_LABEL_STYLES:
+        raise ValueError(f"Unsupported greeting label style: {style}")
+
+    out_pdf_path = Path(out_pdf_path)
+    out_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+
+    label_list = list(labels)
+    page_w, page_h = A4
+    c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
+    c.setTitle(title)
+
+    latin_font_regular, latin_font_bold, _arabic_font_regular, _arabic_font_bold = _register_fonts(assets)
+
+    card_w = _GREETING_LABEL_CELL_W_MM * mm
+    row_heights = [row_h_mm * mm for row_h_mm in _GREETING_LABEL_ROW_HEIGHTS_MM]
+    grid_w = _GREETING_LABEL_COLS * card_w
+    grid_h = sum(row_heights)
+    grid_x = (page_w - grid_w) / 2.0
+    grid_y = (page_h - grid_h) / 2.0
+    per_page = _GREETING_LABEL_COLS * _GREETING_LABEL_ROWS
+
+    if not label_list:
+        label_list = [GreetingLabel(name="")]
+
+    for page_start in range(0, len(label_list), per_page):
+        page_labels = label_list[page_start:page_start + per_page]
+        c.setFillColor(colors.Color(1.0, 1.0, 1.0))
+        c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
+
+        top_cursor = page_h - grid_y
+        label_idx = 0
+        for row_h in row_heights:
+            top_cursor -= row_h
+            for col in range(_GREETING_LABEL_COLS):
+                if label_idx >= len(page_labels):
+                    break
+                x0 = grid_x + (col * card_w)
+                _draw_greeting_label_card(
+                    c,
+                    page_labels[label_idx],
+                    x0=x0,
+                    y0=top_cursor,
+                    card_w=card_w,
+                    card_h=row_h,
+                    assets=assets,
+                    style=style,
+                    latin_font_regular=latin_font_regular,
+                    latin_font_bold=latin_font_bold,
+                )
+                label_idx += 1
+            if label_idx >= len(page_labels):
+                break
+
+        if page_start + per_page < len(label_list):
+            c.showPage()
+
+    c.save()
+    return out_pdf_path
 
 
 def generate_buffet_menu_pdf(
