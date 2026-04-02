@@ -75,6 +75,7 @@ TEMPLATE_PAGE = ASSETS_DIR / "template_page.png"
 OUT_DIR = BASE_DIR / "out"
 OUT_DIR.mkdir(exist_ok=True)
 DRAFTS_JSON = BASE_DIR / "data" / "generated_dish_drafts.json"
+EASTER_GREETING_RENDER_VERSION = 2
 
 REQUIRED_COLS = [
     "name_en",
@@ -877,6 +878,15 @@ if active_workspace == "Easter Greeting Labels":
             if style_label == "Clean Brand Pastel"
             else GREETING_LABEL_STYLE_PLAYFUL
         )
+        current_request_signature = (
+            EASTER_GREETING_RENDER_VERSION,
+            raw_client_names,
+            style_value,
+        )
+        if st.session_state.get("easter_greeting_request_signature") != current_request_signature:
+            st.session_state.pop("easter_greeting_pdf_bytes", None)
+            st.session_state.pop("easter_greeting_pdf_name", None)
+            st.session_state["easter_greeting_request_signature"] = current_request_signature
         per_page = 10
         page_count = max(1, math.ceil(len(greeting_labels) / per_page)) if greeting_labels else 0
         st.caption(f"Sheet capacity: {per_page} labels per page")
@@ -903,6 +913,7 @@ if active_workspace == "Easter Greeting Labels":
             )
             st.session_state["easter_greeting_pdf_bytes"] = out_path.read_bytes()
             st.session_state["easter_greeting_pdf_name"] = out_path.name
+            st.session_state["easter_greeting_request_signature"] = current_request_signature
             st.success("Easter greeting PDF generated.")
 
         easter_pdf_bytes = st.session_state.get("easter_greeting_pdf_bytes")
