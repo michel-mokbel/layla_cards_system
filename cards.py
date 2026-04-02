@@ -1171,7 +1171,7 @@ def _draw_greeting_label_card(
     logo_x = x0 + (card_w - logo_w) / 2.0
     _draw_greeting_logo(c, assets=assets, x=logo_x, y=logo_y, w=logo_w, h=logo_h)
 
-    greeting_font = 12.8 if style == GREETING_LABEL_STYLE_CLEAN else 13.8
+    greeting_font = 13.6 if style == GREETING_LABEL_STYLE_CLEAN else 14.6
     greeting_y = logo_y - (6.8 * mm)
     c.setFillColor(warm_brown)
     _draw_centered_text(
@@ -1194,7 +1194,7 @@ def _draw_greeting_label_card(
         label.name,
         wrap_fn=lambda text, font_name, font_size, max_width: _wrap_text_lines(text, font_name, font_size, max_width, 3),
         font_name=latin_font_bold,
-        max_font_size=16.5 if style == GREETING_LABEL_STYLE_CLEAN else 17.5,
+            max_font_size=17.6 if style == GREETING_LABEL_STYLE_CLEAN else 18.6,
         min_font_size=10.0,
         max_width=name_max_width,
         max_height=name_box_h,
