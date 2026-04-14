@@ -32,6 +32,13 @@ from ai_recipe_studio import (
     validate_draft,
 )
 from idea_center import IDEA_PRESETS, IdeaPreset
+from firebase_auth_service import (
+    FirebaseAuthSession,
+    auth_session_expiring,
+    firebase_auth_error_message,
+    refresh_id_token,
+    sign_in_with_email_password,
+)
 from cards import (
     AssetPaths,
     Dish,
@@ -49,10 +56,12 @@ from enrich import enrich_dish_name, gemini_configured, openai_configured
 
 try:
     import firebase_admin  # type: ignore
+    from firebase_admin import auth as firebase_admin_auth  # type: ignore
     from firebase_admin import credentials as firebase_credentials  # type: ignore
     from firebase_admin import firestore as firebase_firestore  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     firebase_admin = None
+    firebase_admin_auth = None
     firebase_credentials = None
     firebase_firestore = None
 
@@ -94,6 +103,7 @@ _FIRESTORE_INIT_ERROR: str | None = None
 _FIRESTORE_INIT_DONE = False
 _FIRESTORE_BOOTSTRAP_MSG: str | None = None
 FIRESTORE_BATCH_LIMIT = 450
+AUTH_SESSION_KEY = "firebase_auth_session"
 
 
 def _read_dishes_df(path: Path) -> pd.DataFrame:
@@ -186,6 +196,146 @@ def _detect_local_service_account_path() -> Path | None:
         if path.is_file():
             return path
     return None
+
+
+def _firebase_web_api_key() -> str:
+    value = _get_secret_value("FIREBASE_WEB_API_KEY")
+    return str(value).strip() if value is not None else ""
+
+
+def _firebase_auth_required() -> bool:
+    value = _get_secret_value("FIREBASE_AUTH_REQUIRED")
+    return _to_bool(value, default=True)
+
+
+def _firebase_auth_configured() -> bool:
+    return bool(_firebase_web_api_key()) and firebase_admin_auth is not None
+
+
+def _save_auth_session(session: FirebaseAuthSession) -> None:
+    st.session_state[AUTH_SESSION_KEY] = session.to_dict()
+
+
+def _load_auth_session() -> FirebaseAuthSession | None:
+    payload = st.session_state.get(AUTH_SESSION_KEY)
+    if not isinstance(payload, dict):
+        return None
+    session = FirebaseAuthSession.from_dict(payload)
+    if not session.uid or not session.email or not session.id_token:
+        return None
+    return session
+
+
+def _clear_auth_session() -> None:
+    st.session_state.pop(AUTH_SESSION_KEY, None)
+
+
+def _verify_or_refresh_auth_session() -> dict[str, object] | None:
+    session = _load_auth_session()
+    if session is None:
+        return None
+    if firebase_admin_auth is None:
+        _clear_auth_session()
+        return None
+
+    if auth_session_expiring(session):
+        try:
+            refreshed = refresh_id_token(
+                _firebase_web_api_key(),
+                session.refresh_token,
+                email=session.email,
+            )
+            if not refreshed.email:
+                refreshed = FirebaseAuthSession(
+                    uid=refreshed.uid,
+                    email=session.email,
+                    id_token=refreshed.id_token,
+                    refresh_token=refreshed.refresh_token,
+                    expires_at=refreshed.expires_at,
+                )
+            session = refreshed
+            _save_auth_session(session)
+        except Exception:
+            _clear_auth_session()
+            return None
+
+    try:
+        decoded = firebase_admin_auth.verify_id_token(session.id_token)
+        if not session.email and decoded.get("email"):
+            _save_auth_session(
+                FirebaseAuthSession(
+                    uid=str(decoded.get("uid", session.uid)),
+                    email=str(decoded.get("email", "")).strip(),
+                    id_token=session.id_token,
+                    refresh_token=session.refresh_token,
+                    expires_at=session.expires_at,
+                )
+            )
+        return decoded
+    except Exception:
+        try:
+            refreshed = refresh_id_token(
+                _firebase_web_api_key(),
+                session.refresh_token,
+                email=session.email,
+            )
+            if not refreshed.email:
+                refreshed = FirebaseAuthSession(
+                    uid=refreshed.uid,
+                    email=session.email,
+                    id_token=refreshed.id_token,
+                    refresh_token=refreshed.refresh_token,
+                    expires_at=refreshed.expires_at,
+                )
+            _save_auth_session(refreshed)
+            return firebase_admin_auth.verify_id_token(refreshed.id_token)
+        except Exception:
+            _clear_auth_session()
+            return None
+
+
+def _render_login_gate() -> dict[str, object] | None:
+    if not _firebase_auth_required():
+        return {"uid": "dev-bypass"}
+
+    if not _firebase_auth_configured():
+        st.error(
+            "Firebase Authentication is required, but it is not configured. "
+            "Set `FIREBASE_WEB_API_KEY` and valid Firebase admin credentials."
+        )
+        st.stop()
+
+    decoded = _verify_or_refresh_auth_session()
+    if decoded is not None:
+        session = _load_auth_session()
+        with st.sidebar:
+            st.markdown("**Session**")
+            st.caption(f"Signed in as {session.email if session else decoded.get('email', 'user')}")
+            if st.button("Sign Out", use_container_width=True):
+                _clear_auth_session()
+                st.rerun()
+        return decoded
+
+    st.subheader("Sign In")
+    st.caption("This admin workspace is protected by Firebase Authentication.")
+
+    with st.form("firebase_sign_in_form", clear_on_submit=False):
+        email = st.text_input("Email", autocomplete="email")
+        password = st.text_input("Password", type="password", autocomplete="current-password")
+        submitted = st.form_submit_button("Sign In", type="primary", use_container_width=True)
+
+    if submitted:
+        try:
+            session = sign_in_with_email_password(_firebase_web_api_key(), email, password)
+            _save_auth_session(session)
+            decoded = _verify_or_refresh_auth_session()
+            if decoded is None:
+                raise RuntimeError("Firebase sign-in succeeded but token verification failed.")
+            st.rerun()
+        except Exception as exc:
+            st.error(firebase_auth_error_message(exc))
+
+    st.stop()
 
 
 def _init_firestore_client() -> None:
@@ -635,6 +785,8 @@ def _sync_editor_rows_to_drafts(
 
 st.set_page_config(page_title="Layla Cards Generator", layout="wide")
 st.title("Layla Cards Generator")
+_init_firestore_client()
+_AUTH_CONTEXT = _render_login_gate()
 
 # Load dish DB (Firebase first, local CSV fallback)
 df, dishes_backend = _load_dishes()

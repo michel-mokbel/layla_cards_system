@@ -44,6 +44,24 @@ FIREBASE_DISHES_COLLECTION="dishes"
 
 If Firebase is not configured, the app falls back to `data/dishes.csv`.
 
+## 2.2) Firebase Authentication
+The admin workspace can be protected with Firebase Authentication using email/password sign-in.
+
+Required:
+- `FIREBASE_WEB_API_KEY`
+- Firebase admin credentials via `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH`
+
+Optional:
+- `FIREBASE_AUTH_REQUIRED` (defaults to `true`)
+
+Example `.streamlit/secrets.toml`:
+```toml
+FIREBASE_WEB_API_KEY="your_firebase_web_api_key"
+FIREBASE_AUTH_REQUIRED=true
+```
+
+The app signs users in with Firebase Auth REST API and verifies the returned ID token server-side with the Firebase Admin SDK.
+
 ### Seeding behavior
 - Automatic bootstrap: when Firestore is enabled and empty, the app auto-seeds from `data/dishes.csv` once.
 - Manual script (recommended for controlled reseed): use `tools/seed_firestore.py`.
