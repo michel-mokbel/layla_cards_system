@@ -107,8 +107,8 @@ def openai_base_url() -> str:
 
 def gemini_base_url() -> str:
     return (
-        env("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
-        or "https://generativelanguage.googleapis.com/v1beta/openai"
+        env("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/")
+        or "https://generativelanguage.googleapis.com/v1beta/"
     )
 
 
