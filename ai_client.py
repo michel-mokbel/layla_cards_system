@@ -43,8 +43,8 @@ def _secret(name: str) -> Optional[str]:
         pass
 
     prefix_map = {
-        "OPENROUTER_": "openrouter",
         "OPENAI_": "openai",
+        "GEMINI_": "gemini",
     }
     section: Optional[str] = None
     suffix: Optional[str] = None
@@ -89,32 +89,35 @@ def env(name: str, default: Optional[str] = None) -> Optional[str]:
     return default
 
 
-def openrouter_configured() -> bool:
-    return bool(env("OPENROUTER_API_KEY")) and bool(env("OPENROUTER_MODEL"))
-
-
 def openai_configured() -> bool:
     return bool(env("OPENAI_API_KEY")) and bool(env("OPENAI_MODEL"))
 
 
+def gemini_configured() -> bool:
+    return bool(env("GEMINI_API_KEY")) and bool(env("GEMINI_MODEL"))
+
+
 def ai_configured() -> bool:
-    return openrouter_configured() or openai_configured()
+    return gemini_configured() or openai_configured()
 
 
 def openai_base_url() -> str:
     return env("OPENAI_BASE_URL", "https://api.openai.com") or "https://api.openai.com"
 
 
-def openrouter_base_url() -> str:
-    return env("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1") or "https://openrouter.ai/api/v1"
+def gemini_base_url() -> str:
+    return (
+        env("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
+        or "https://generativelanguage.googleapis.com/v1beta/openai"
+    )
 
 
 def openai_model() -> Optional[str]:
     return env("OPENAI_MODEL")
 
 
-def openrouter_model() -> Optional[str]:
-    return env("OPENROUTER_MODEL")
+def gemini_model() -> Optional[str]:
+    return env("GEMINI_MODEL")
 
 
 def parse_json_object(text: str) -> dict[str, Any]:
@@ -174,15 +177,6 @@ def _post_json(url: str, payload: dict[str, Any], headers: dict[str, str]) -> di
         except Exception:
             details = ""
 
-        if exc.code == 402:
-            msg = (
-                "OpenRouter request failed with 402 Payment Required. "
-                "Your account likely has no credits, billing is disabled, or the selected model requires paid access."
-            )
-            if details:
-                msg = f"{msg} Provider message: {details}"
-            raise RuntimeError(msg) from exc
-
         if details:
             raise RuntimeError(f"API request failed ({exc.code}): {details}") from exc
         raise RuntimeError(f"API request failed ({exc.code}): {exc.reason}") from exc
@@ -196,49 +190,15 @@ def _post_json(url: str, payload: dict[str, Any], headers: dict[str, str]) -> di
         raise
 
 
-def request_json_completion(system_instruction: str, user_content: str) -> AICompletion:
-    if openrouter_configured():
-        base_url = openrouter_base_url().rstrip("/")
-        api_key = env("OPENROUTER_API_KEY")
-        model = openrouter_model() or ""
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-        site_url = env("OPENROUTER_SITE_URL")
-        app_name = env("OPENROUTER_APP_NAME")
-        if site_url:
-            headers["HTTP-Referer"] = site_url
-        if app_name:
-            headers["X-Title"] = app_name
-
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_content},
-            ],
-            "response_format": {"type": "json_object"},
-        }
-        response = _post_json(f"{base_url}/chat/completions", payload=payload, headers=headers)
-        text = (
-            (((response.get("choices") or [None])[0] or {}).get("message") or {}).get("content")
-            if isinstance(response, dict)
-            else None
-        )
-        if not isinstance(text, str) or not text.strip():
-            raise RuntimeError("AI response missing JSON text output.")
-        return AICompletion(text=text, provider="openrouter", model=model)
-
-    if not openai_configured():
-        raise RuntimeError(
-            "AI is not configured. Set OPENROUTER_API_KEY + OPENROUTER_MODEL (recommended), "
-            "or OPENAI_API_KEY + OPENAI_MODEL."
-        )
-
+def _request_openai_completion(
+    system_instruction: str,
+    user_content: str,
+    *,
+    model_override: Optional[str] = None,
+) -> AICompletion:
     base_url = openai_base_url().rstrip("/")
     api_key = env("OPENAI_API_KEY")
-    model = openai_model() or ""
+    model = model_override or openai_model() or ""
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -285,3 +245,59 @@ def request_json_completion(system_instruction: str, user_content: str) -> AICom
         if not isinstance(text, str) or not text.strip():
             raise RuntimeError("AI response missing JSON text output.")
         return AICompletion(text=text, provider="openai", model=model)
+
+
+def _request_gemini_completion(
+    system_instruction: str,
+    user_content: str,
+    *,
+    model_override: Optional[str] = None,
+) -> AICompletion:
+    base_url = gemini_base_url().rstrip("/")
+    api_key = env("GEMINI_API_KEY")
+    model = model_override or gemini_model() or ""
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_content},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+    response = _post_json(f"{base_url}/chat/completions", payload=payload, headers=headers)
+    text = (
+        (((response.get("choices") or [None])[0] or {}).get("message") or {}).get("content")
+        if isinstance(response, dict)
+        else None
+    )
+    if not isinstance(text, str) or not text.strip():
+        raise RuntimeError("AI response missing JSON text output.")
+    return AICompletion(text=text, provider="gemini", model=model)
+
+
+def request_json_completion(
+    system_instruction: str,
+    user_content: str,
+    *,
+    preferred_provider: Optional[str] = None,
+    model_override: Optional[str] = None,
+) -> AICompletion:
+    preferred = str(preferred_provider or "").strip().lower()
+
+    if preferred == "openai" and openai_configured():
+        return _request_openai_completion(system_instruction, user_content, model_override=model_override)
+    if preferred == "gemini" and gemini_configured():
+        return _request_gemini_completion(system_instruction, user_content, model_override=model_override)
+
+    if gemini_configured():
+        return _request_gemini_completion(system_instruction, user_content, model_override=model_override)
+
+    if not openai_configured():
+        raise RuntimeError(
+            "AI is not configured. Set GEMINI_API_KEY + GEMINI_MODEL, or OPENAI_API_KEY + OPENAI_MODEL."
+        )
+    return _request_openai_completion(system_instruction, user_content, model_override=model_override)

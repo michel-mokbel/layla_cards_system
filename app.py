@@ -45,7 +45,7 @@ from cards import (
     load_layout_config,
     parse_greeting_label_names,
 )
-from enrich import enrich_dish_name, openai_configured, openrouter_configured
+from enrich import enrich_dish_name, gemini_configured, openai_configured
 
 try:
     import firebase_admin  # type: ignore
@@ -1030,13 +1030,13 @@ if active_workspace == "Add Dish (Auto-fill)":
     if default_arabic_font is None:
         st.info("Arabic font not found. Add a .ttf to assets/fonts/ to avoid Arabic text showing as boxes.")
 
-    if openrouter_configured():
-        st.caption("Auto-fill is enabled via OpenRouter (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`).")
+    if gemini_configured():
+        st.caption("Auto-fill is enabled via Gemini (`GEMINI_API_KEY` + `GEMINI_MODEL`).")
     elif openai_configured():
         st.caption("Auto-fill is enabled via OpenAI (`OPENAI_API_KEY` + `OPENAI_MODEL`).")
     else:
         st.caption(
-            "Auto-fill is not configured. Set `OPENROUTER_API_KEY` + `OPENROUTER_MODEL` (recommended)."
+            "Auto-fill is not configured. Set `GEMINI_API_KEY` + `GEMINI_MODEL`, or `OPENAI_API_KEY` + `OPENAI_MODEL`."
         )
 
     with st.form("add_dish_form", clear_on_submit=False):
@@ -1051,8 +1051,8 @@ if active_workspace == "Add Dish (Auto-fill)":
         with col1:
             do_autofill = st.checkbox(
                 "Auto-fill (AI)",
-                value=openrouter_configured() or openai_configured(),
-                help="Requires OPENROUTER_API_KEY + OPENROUTER_MODEL (recommended) or OPENAI_API_KEY + OPENAI_MODEL.",
+                value=gemini_configured() or openai_configured(),
+                help="Requires Gemini or OpenAI credentials.",
             )
         with col2:
             overwrite_pref = st.checkbox(
@@ -1312,12 +1312,12 @@ if active_workspace == "AI Recipe Studio":
     ai_drafts = _load_recipe_drafts()
   
 
-    if openrouter_configured():
-        st.caption("Generation is enabled via OpenRouter.")
+    if gemini_configured():
+        st.caption("Generation is enabled via Gemini.")
     elif openai_configured():
         st.caption("Generation is enabled via OpenAI.")
     else:
-        st.warning("AI generation is not configured. Set `OPENROUTER_API_KEY` + `OPENROUTER_MODEL` or OpenAI equivalents.")
+        st.warning("AI generation is not configured. Set Gemini or OpenAI credentials.")
 
     pending_autorun = st.session_state.get("ai_recipe_autorun_request")
     if isinstance(pending_autorun, dict):

@@ -13,6 +13,7 @@ from typing import Any, Callable, Iterable, Optional
 from uuid import uuid4
 
 from ai_client import AICompletion, ai_configured, parse_json_object, request_json_completion
+from translation import translate_dish_name
 
 
 DEFAULT_COUNT = 5
@@ -198,8 +199,7 @@ def generate_dish_drafts(
     normalized_request = request.normalized()
     if completion_fn is None and not ai_configured():
         raise RuntimeError(
-            "AI is not configured. Set OPENROUTER_API_KEY + OPENROUTER_MODEL (recommended), "
-            "or OPENAI_API_KEY + OPENAI_MODEL."
+            "AI is not configured. Set GEMINI_API_KEY + GEMINI_MODEL, or OPENAI_API_KEY + OPENAI_MODEL."
         )
 
     completion = completion_fn or request_json_completion
@@ -235,6 +235,7 @@ def generate_dish_drafts(
             reserved_names=reserved_names,
             completion_fn=completion,
         )
+        draft = _apply_dedicated_translation(draft, allow_ai=(completion_fn is None))
         if draft.validation.passed:
             reserved_names.add(str(draft.dish.get("name_en", "")).strip().lower())
         drafts.append(draft)
@@ -754,6 +755,27 @@ def _normalize_dish_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "protein_type": _normalize_enum_payload(payload.get("protein_type"), "veg"),
         "dairy": _normalize_enum_payload(payload.get("dairy"), "dairy_free"),
     }
+
+
+def _apply_dedicated_translation(draft: GeneratedDishDraft, *, allow_ai: bool) -> GeneratedDishDraft:
+    name_en = str(draft.dish.get("name_en", "")).strip()
+    if not name_en:
+        return draft
+    translated_name = translate_dish_name(
+        name_en,
+        proposed_name_ar=str(draft.dish.get("name_ar", "")).strip(),
+        allow_ai=allow_ai,
+    )
+    if not translated_name:
+        return draft
+    payload = draft.to_dict()
+    dish_payload = dict(payload.get("dish") or {})
+    dish_payload["name_ar"] = translated_name
+    payload["dish"] = dish_payload
+    updated = GeneratedDishDraft.from_dict(payload)
+    validation = validate_draft(updated)
+    evaluation = evaluate_draft(updated, request_from_draft(updated))
+    return _replace_draft(updated, validation=validation, evaluation=evaluation)
 
 
 def _normalize_recipe_payload(payload: dict[str, Any]) -> dict[str, Any]:

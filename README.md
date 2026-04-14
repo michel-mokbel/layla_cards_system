@@ -104,23 +104,19 @@ If you want, I can extend this MVP to include **recipe-based macro calculation**
 ## 6) Optional auto-fill (AI)
 There is an **Add Dish (Auto-fill)** tab that can propose Arabic + macros + flags.
 
-### Recommended: OpenRouter
-Set these environment variables before running Streamlit:
-- `OPENROUTER_API_KEY`
-- `OPENROUTER_MODEL`
-
-Optional (recommended by OpenRouter):
-- `OPENROUTER_SITE_URL`
-- `OPENROUTER_APP_NAME`
+### Recommended: Gemini
+Set:
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
 
 Optional:
-- `OPENROUTER_BASE_URL` (defaults to `https://openrouter.ai/api/v1`)
+- `GEMINI_BASE_URL` (defaults to `https://generativelanguage.googleapis.com/v1beta/openai`)
 
 #### Streamlit secrets (easy local setup)
 Create `/Users/mohamadsafar/Documents/layla_cards_system/.streamlit/secrets.toml`:
 ```toml
-OPENROUTER_API_KEY="your_key_here"
-OPENROUTER_MODEL="your_model_here"
+GEMINI_API_KEY="your_key_here"
+GEMINI_MODEL="your_model_here"
 ```
 
 ### Alternative: OpenAI
@@ -130,6 +126,19 @@ Set:
 
 Optional (for OpenAI-compatible endpoints):
 - `OPENAI_BASE_URL` (defaults to `https://api.openai.com`)
+
+### Translation quality
+Arabic dish-name translation now runs as a separate glossary-aware step instead of relying on the same prompt that estimates macros.
+
+Optional translation-specific settings:
+- `AI_TRANSLATION_PROVIDER` = `gemini` or `openai`
+- `GEMINI_TRANSLATION_MODEL`
+- `OPENAI_TRANSLATION_MODEL`
+
+Default behavior:
+- Prefer exact matches from `data/dishes.csv`
+- Prefer Gemini for translation if `GEMINI_API_KEY` is configured
+- Fall back to OpenAI
 
 ## 7) Template alignment workflow (DOCX -> JSON -> debug overlay)
 Use the script below to dump Word layout coordinates (shapes/text/images):

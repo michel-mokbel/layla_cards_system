@@ -14,11 +14,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ai_client import (
+    gemini_configured,
     openai_configured,
-    openrouter_configured,
     parse_json_object,
     request_json_completion,
 )
+from translation import translate_dish_name
 
 
 @dataclass(frozen=True)
@@ -45,11 +46,10 @@ def enrich_dish_name(name_en: str, *, require_ai: bool = False) -> EnrichedDish:
     if not cleaned:
         raise ValueError("Dish name (EN) is required.")
 
-    if not openrouter_configured() and not openai_configured():
+    if not gemini_configured() and not openai_configured():
         if require_ai:
             raise RuntimeError(
-                "AI is not configured. Set OPENROUTER_API_KEY + OPENROUTER_MODEL (recommended), "
-                "or OPENAI_API_KEY + OPENAI_MODEL."
+                "AI is not configured. Set GEMINI_API_KEY + GEMINI_MODEL, or OPENAI_API_KEY + OPENAI_MODEL."
             )
         return EnrichedDish(
             name_en=cleaned,
@@ -67,7 +67,7 @@ def enrich_dish_name(name_en: str, *, require_ai: bool = False) -> EnrichedDish:
     instruction = (
         "You are a food assistant for a restaurant admin tool.\n"
         "Given a dish name in English, return a single JSON object with exactly these keys:\n"
-        "name_ar (string, Arabic translation), calories_kcal (number), carbs_g (number), protein_g (number), fat_g (number),\n"
+        "calories_kcal (number), carbs_g (number), protein_g (number), fat_g (number),\n"
         "gluten (\"gluten\" or \"gluten_free\"), protein_type (\"veg\" or \"meat\"), dairy (\"dairy\" or \"dairy_free\").\n"
         "Assume one standard serving unless the name implies otherwise.\n"
         "If uncertain, make a reasonable estimate and prefer gluten_free / veg / dairy_free when ambiguous.\n"
@@ -79,7 +79,7 @@ def enrich_dish_name(name_en: str, *, require_ai: bool = False) -> EnrichedDish:
 
     return EnrichedDish(
         name_en=cleaned,
-        name_ar=str(obj.get("name_ar", "")).strip(),
+        name_ar=translate_dish_name(cleaned, proposed_name_ar=str(obj.get("name_ar", "")).strip()),
         calories_kcal=float(obj.get("calories_kcal", 0.0) or 0.0),
         carbs_g=float(obj.get("carbs_g", 0.0) or 0.0),
         protein_g=float(obj.get("protein_g", 0.0) or 0.0),
