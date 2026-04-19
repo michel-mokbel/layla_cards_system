@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import date
-import base64
 import json
 import math
 import os
@@ -18,7 +17,6 @@ from pathlib import Path
 import tempfile
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from ai_recipe_studio import (
     GenerationRequest,
@@ -107,9 +105,6 @@ _FIRESTORE_INIT_DONE = False
 _FIRESTORE_BOOTSTRAP_MSG: str | None = None
 FIRESTORE_BATCH_LIMIT = 450
 AUTH_SESSION_KEY = "firebase_auth_session"
-AUTH_COOKIE_NAME = "layla_auth_session"
-AUTH_COOKIE_SET_KEY = "_auth_cookie_to_set"
-AUTH_COOKIE_CLEAR_KEY = "_auth_cookie_to_clear"
 
 
 @dataclass(frozen=True)
@@ -229,152 +224,22 @@ def _firebase_auth_configured() -> bool:
     return bool(_firebase_web_api_key()) and firebase_admin_auth is not None
 
 
-def _auth_cookie_name() -> str:
-    value = _get_secret_value("FIREBASE_AUTH_COOKIE_NAME")
-    return str(value).strip() if value else AUTH_COOKIE_NAME
-
-
-def _auth_session_days() -> int:
-    value = _get_secret_value("FIREBASE_AUTH_SESSION_DAYS")
-    try:
-        days = int(str(value).strip()) if value is not None else 7
-    except Exception:
-        days = 7
-    return min(max(days, 1), 14)
-
-
 def _save_auth_session(session: FirebaseAuthSession) -> None:
     st.session_state[AUTH_SESSION_KEY] = session.to_dict()
 
 
-def _serialize_auth_session(session: FirebaseAuthSession) -> str:
-    raw = json.dumps(session.to_dict(), separators=(",", ":")).encode("utf-8")
-    return base64.urlsafe_b64encode(raw).decode("ascii")
-
-
-def _deserialize_auth_session(payload: str) -> FirebaseAuthSession | None:
-    try:
-        raw = base64.urlsafe_b64decode(str(payload).encode("ascii"))
-        data = json.loads(raw.decode("utf-8"))
-    except Exception:
+def _load_auth_session() -> FirebaseAuthSession | None:
+    payload = st.session_state.get(AUTH_SESSION_KEY)
+    if not isinstance(payload, dict):
         return None
-    if not isinstance(data, dict):
-        return None
-    session = FirebaseAuthSession.from_dict(data)
+    session = FirebaseAuthSession.from_dict(payload)
     if not session.uid or not session.email or not session.id_token:
         return None
     return session
 
 
-def _load_auth_session() -> FirebaseAuthSession | None:
-    payload = st.session_state.get(AUTH_SESSION_KEY)
-    if isinstance(payload, dict):
-        session = FirebaseAuthSession.from_dict(payload)
-        if session.uid and session.email and session.id_token:
-            return session
-
-    cookie_value = _load_auth_cookie_value()
-    if not cookie_value:
-        return None
-    session = _deserialize_auth_session(cookie_value)
-    if session is None:
-        _queue_clear_auth_cookie()
-        return None
-    _save_auth_session(session)
-    return session
-
-
 def _clear_auth_session() -> None:
     st.session_state.pop(AUTH_SESSION_KEY, None)
-
-
-def _load_auth_cookie_value() -> str:
-    try:
-        cookies = st.context.cookies
-    except Exception:
-        return ""
-    value = cookies.get(_auth_cookie_name(), "")
-    return str(value).strip() if value else ""
-
-
-def _queue_set_auth_cookie(cookie_value: str) -> None:
-    if cookie_value:
-        st.session_state[AUTH_COOKIE_SET_KEY] = cookie_value
-    st.session_state.pop(AUTH_COOKIE_CLEAR_KEY, None)
-
-
-def _queue_clear_auth_cookie() -> None:
-    st.session_state.pop(AUTH_COOKIE_SET_KEY, None)
-    st.session_state[AUTH_COOKIE_CLEAR_KEY] = True
-
-
-def _auth_cookie_bridge_html(*, cookie_name: str, secure_attr: str, pending_value: str = "", clear_cookie: bool = False) -> str:
-    encoded_cookie_name = json.dumps(cookie_name)
-    encoded_pending_value = json.dumps(pending_value)
-    return f"""
-    <script>
-    const cookieName = {encoded_cookie_name};
-    const pendingValue = {encoded_pending_value};
-    const shouldClear = {str(clear_cookie).lower()};
-    const cookieSuffix = "; path=/; SameSite=Lax; {secure_attr}";
-
-    const rootDoc = (() => {{
-      try {{
-        if (window.top && window.top.document) return window.top.document;
-      }} catch (e) {{}}
-      try {{
-        if (window.parent && window.parent.document) return window.parent.document;
-      }} catch (e) {{}}
-      return document;
-    }})();
-
-    try {{
-      if (shouldClear) {{
-        rootDoc.cookie = cookieName + "=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT" + cookieSuffix;
-        window.top.location.reload();
-      }} else if (pendingValue) {{
-        rootDoc.cookie = cookieName + "=" + encodeURIComponent(pendingValue) + "; max-age=" + {_auth_session_days() * 24 * 60 * 60} + cookieSuffix;
-        window.top.location.reload();
-      }}
-    }} catch (e) {{
-      console.error("auth cookie bridge failed", e);
-    }}
-    </script>
-    """
-
-
-def _render_auth_cookie_bridge() -> None:
-    cookie_name = _auth_cookie_name()
-    cookie_value = _load_auth_cookie_value()
-    pending_value = str(st.session_state.get(AUTH_COOKIE_SET_KEY, "") or "")
-    pending_clear = bool(st.session_state.get(AUTH_COOKIE_CLEAR_KEY, False))
-    secure_attr = "Secure;" if str(getattr(st.context, "url", "") or "").startswith("https://") else ""
-
-    if pending_value:
-        if cookie_value == pending_value:
-            st.session_state.pop(AUTH_COOKIE_SET_KEY, None)
-            return
-        components.html(
-            _auth_cookie_bridge_html(
-                cookie_name=cookie_name,
-                secure_attr=secure_attr,
-                pending_value=pending_value,
-            ),
-            height=0,
-        )
-        st.stop()
-
-    if pending_clear:
-        st.session_state.pop(AUTH_COOKIE_CLEAR_KEY, None)
-        components.html(
-            _auth_cookie_bridge_html(
-                cookie_name=cookie_name,
-                secure_attr=secure_attr,
-                clear_cookie=True,
-            ),
-            height=0,
-        )
-        st.stop()
 
 
 def _verify_or_refresh_auth_session() -> dict[str, object] | None:
@@ -404,7 +269,6 @@ def _verify_or_refresh_auth_session() -> dict[str, object] | None:
             _save_auth_session(session)
         except Exception:
             _clear_auth_session()
-            _queue_clear_auth_cookie()
             return None
 
     try:
@@ -439,7 +303,6 @@ def _verify_or_refresh_auth_session() -> dict[str, object] | None:
             return firebase_admin_auth.verify_id_token(refreshed.id_token)
         except Exception:
             _clear_auth_session()
-            _queue_clear_auth_cookie()
             return None
 
 
@@ -462,7 +325,6 @@ def _render_login_gate() -> dict[str, object] | None:
             st.caption(f"Signed in as {session.email if session else decoded.get('email', 'user')}")
             if st.button("Sign Out", use_container_width=True):
                 _clear_auth_session()
-                _queue_clear_auth_cookie()
                 st.rerun()
         return decoded
 
@@ -478,7 +340,6 @@ def _render_login_gate() -> dict[str, object] | None:
         try:
             session = sign_in_with_email_password(_firebase_web_api_key(), email, password)
             _save_auth_session(session)
-            _queue_set_auth_cookie(_serialize_auth_session(session))
             decoded = _verify_or_refresh_auth_session()
             if decoded is None:
                 raise RuntimeError("Firebase sign-in succeeded but token verification failed.")
@@ -1015,7 +876,6 @@ def _sync_editor_rows_to_drafts(
 
 st.set_page_config(page_title="Layla Cards Generator", layout="wide")
 st.title("Layla Cards Generator")
-_render_auth_cookie_bridge()
 _init_firestore_client()
 _AUTH_CONTEXT = _render_login_gate()
 
