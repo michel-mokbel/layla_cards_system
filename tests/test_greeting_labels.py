@@ -5,7 +5,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from reportlab.lib.pagesizes import A4, landscape
+
 from cards import (
+    _build_delivery_note_layout_spec,
+    _delivery_note_body_baseline,
     AssetPaths,
     DeliveryNoteRow,
     Dish,
@@ -169,28 +173,42 @@ class GreetingLabelTests(unittest.TestCase):
 
     def test_generate_delivery_note_pdf_paginates_after_ten_rows(self) -> None:
         assets = _assets()
-        rows = [
-            DeliveryNoteRow(sr_no=str(index), food_type=f"Dish {index}", unit="Pc")
-            for index in range(1, 15)
-        ]
         with tempfile.TemporaryDirectory() as tmp_dir:
-            out_path = Path(tmp_dir) / "delivery_note_two_pages.pdf"
-            generate_delivery_note_pdf(
-                rows=rows,
-                out_pdf_path=out_path,
-                assets=assets,
-                client_name="Microsoft",
-                location="Al Fardan Tower - Lusail",
-                reference="KL/EFS-MS/026",
-                revision="00",
-                issue_date="26/02/2026",
-                issue_no="00",
-            )
-            pdf_bytes = out_path.read_bytes()
-            self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
-            self.assertEqual(_pdf_page_count(pdf_bytes), 2)
-            width, height = _pdf_media_box(pdf_bytes)
-            self.assertGreater(width, height)
+            for row_count, expected_pages in ((1, 1), (10, 1), (11, 2), (21, 3)):
+                with self.subTest(row_count=row_count):
+                    rows = [
+                        DeliveryNoteRow(sr_no=str(index), food_type=f"Dish {index}", unit="Pc")
+                        for index in range(1, row_count + 1)
+                    ]
+                    out_path = Path(tmp_dir) / f"delivery_note_{row_count}.pdf"
+                    generate_delivery_note_pdf(
+                        rows=rows,
+                        out_pdf_path=out_path,
+                        assets=assets,
+                        client_name="Microsoft",
+                        location="Al Fardan Tower - Lusail",
+                        reference="KL/EFS-MS/026",
+                        revision="00",
+                        issue_date="26/02/2026",
+                        issue_no="00",
+                    )
+                    pdf_bytes = out_path.read_bytes()
+                    self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+                    self.assertEqual(_pdf_page_count(pdf_bytes), expected_pages)
+                    width, height = _pdf_media_box(pdf_bytes)
+                    self.assertGreater(width, height)
+
+    def test_delivery_note_layout_geometry_keeps_table_above_footer(self) -> None:
+        page_w, page_h = landscape(A4)
+        layout = _build_delivery_note_layout_spec(page_w, page_h)
+
+        self.assertAlmostEqual(
+            layout.table_rect.h,
+            layout.table_header_h + (10.0 * layout.table_row_h),
+            delta=0.01,
+        )
+        self.assertGreater(layout.table_rect.y, layout.footer_rect.top)
+        self.assertGreater(_delivery_note_body_baseline(layout, 9), layout.footer_rect.top)
 
 
 if __name__ == "__main__":
