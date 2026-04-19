@@ -109,6 +109,7 @@ AUTH_SESSION_KEY = "firebase_auth_session"
 AUTH_COOKIE_NAME = "layla_auth_session"
 AUTH_COOKIE_SET_KEY = "_auth_cookie_to_set"
 AUTH_COOKIE_CLEAR_KEY = "_auth_cookie_to_clear"
+AUTH_COOKIE_STORAGE_KEY = "layla_auth_session_storage"
 
 
 @dataclass(frozen=True)
@@ -280,44 +281,99 @@ def _queue_clear_auth_cookie() -> None:
     st.session_state[AUTH_COOKIE_CLEAR_KEY] = True
 
 
+def _auth_cookie_bridge_html(*, cookie_name: str, secure_attr: str, pending_value: str = "", clear_cookie: bool = False) -> str:
+    encoded_cookie_name = json.dumps(cookie_name)
+    encoded_storage_key = json.dumps(AUTH_COOKIE_STORAGE_KEY)
+    encoded_pending_value = json.dumps(pending_value)
+    return f"""
+    <script>
+    const cookieName = {encoded_cookie_name};
+    const storageKey = {encoded_storage_key};
+    const pendingValue = {encoded_pending_value};
+    const shouldClear = {str(clear_cookie).lower()};
+    const cookieSuffix = "; path=/; SameSite=Lax; {secure_attr}";
+
+    const rootDoc = (() => {{
+      try {{
+        if (window.top && window.top.document) return window.top.document;
+      }} catch (e) {{}}
+      try {{
+        if (window.parent && window.parent.document) return window.parent.document;
+      }} catch (e) {{}}
+      return document;
+    }})();
+
+    function setCookie(value, maxAge) {{
+      rootDoc.cookie = cookieName + "=" + encodeURIComponent(value) + "; max-age=" + maxAge + cookieSuffix;
+    }}
+
+    function clearCookie() {{
+      rootDoc.cookie = cookieName + "=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT" + cookieSuffix;
+    }}
+
+    try {{
+      if (shouldClear) {{
+        window.localStorage.removeItem(storageKey);
+        clearCookie();
+        window.top.location.reload();
+      }} else if (pendingValue) {{
+        window.localStorage.setItem(storageKey, pendingValue);
+        setCookie(pendingValue, {_auth_session_days() * 24 * 60 * 60});
+        window.top.location.reload();
+      }} else {{
+        const restored = window.localStorage.getItem(storageKey);
+        if (restored) {{
+          setCookie(restored, {_auth_session_days() * 24 * 60 * 60});
+          window.top.location.reload();
+        }}
+      }}
+    }} catch (e) {{
+      console.error("auth cookie bridge failed", e);
+    }}
+    </script>
+    """
+
+
 def _render_auth_cookie_bridge() -> None:
     cookie_name = _auth_cookie_name()
     cookie_value = _load_auth_cookie_value()
     pending_value = str(st.session_state.get(AUTH_COOKIE_SET_KEY, "") or "")
     pending_clear = bool(st.session_state.get(AUTH_COOKIE_CLEAR_KEY, False))
+    secure_attr = "Secure;" if str(getattr(st.context, "url", "") or "").startswith("https://") else ""
 
     if pending_value:
         if cookie_value == pending_value:
             st.session_state.pop(AUTH_COOKIE_SET_KEY, None)
             return
-        max_age = _auth_session_days() * 24 * 60 * 60
-        secure_attr = "Secure;" if str(getattr(st.context, "url", "") or "").startswith("https://") else ""
         components.html(
-            f"""
-            <script>
-            document.cookie = "{cookie_name}=" + encodeURIComponent({json.dumps(pending_value)}) + "; path=/; max-age={max_age}; SameSite=Lax; {secure_attr}";
-            window.parent.location.reload();
-            </script>
-            """,
+            _auth_cookie_bridge_html(
+                cookie_name=cookie_name,
+                secure_attr=secure_attr,
+                pending_value=pending_value,
+            ),
             height=0,
         )
         st.stop()
 
     if pending_clear:
-        if not cookie_value:
-            st.session_state.pop(AUTH_COOKIE_CLEAR_KEY, None)
-            return
-        secure_attr = "Secure;" if str(getattr(st.context, "url", "") or "").startswith("https://") else ""
         components.html(
-            f"""
-            <script>
-            document.cookie = "{cookie_name}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; {secure_attr}";
-            window.parent.location.reload();
-            </script>
-            """,
+            _auth_cookie_bridge_html(
+                cookie_name=cookie_name,
+                secure_attr=secure_attr,
+                clear_cookie=True,
+            ),
             height=0,
         )
         st.stop()
+
+    if not cookie_value:
+        components.html(
+            _auth_cookie_bridge_html(
+                cookie_name=cookie_name,
+                secure_attr=secure_attr,
+            ),
+            height=0,
+        )
 
 
 def _verify_auth_cookie_session() -> dict[str, object] | None:
