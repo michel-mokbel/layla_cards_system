@@ -167,6 +167,31 @@ class GreetingLabelTests(unittest.TestCase):
             width, height = _pdf_media_box(pdf_bytes)
             self.assertGreater(width, height)
 
+    def test_generate_delivery_note_pdf_paginates_after_ten_rows(self) -> None:
+        assets = _assets()
+        rows = [
+            DeliveryNoteRow(sr_no=str(index), food_type=f"Dish {index}", unit="Pc")
+            for index in range(1, 15)
+        ]
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_path = Path(tmp_dir) / "delivery_note_two_pages.pdf"
+            generate_delivery_note_pdf(
+                rows=rows,
+                out_pdf_path=out_path,
+                assets=assets,
+                client_name="Microsoft",
+                location="Al Fardan Tower - Lusail",
+                reference="KL/EFS-MS/026",
+                revision="00",
+                issue_date="26/02/2026",
+                issue_no="00",
+            )
+            pdf_bytes = out_path.read_bytes()
+            self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+            self.assertEqual(_pdf_page_count(pdf_bytes), 2)
+            width, height = _pdf_media_box(pdf_bytes)
+            self.assertGreater(width, height)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -705,7 +705,7 @@ def _default_delivery_unit(dish_name: str) -> str:
 
 def _delivery_note_rows_df_from_dishes(dishes: list[Dish]) -> pd.DataFrame:
     rows: list[dict[str, str]] = []
-    for idx, dish in enumerate(dishes[:10], start=1):
+    for idx, dish in enumerate(dishes, start=1):
         rows.append(
             {
                 "sr_no": str(idx),
@@ -717,7 +717,7 @@ def _delivery_note_rows_df_from_dishes(dishes: list[Dish]) -> pd.DataFrame:
                 "remarks": "",
             }
         )
-    while len(rows) < 10:
+    while len(rows) < max(10, len(dishes)):
         rows.append(
             {
                 "sr_no": str(len(rows) + 1),

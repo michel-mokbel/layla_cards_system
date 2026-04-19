@@ -1612,7 +1612,14 @@ def generate_delivery_note_pdf(
     header_row_h = 15.0 * mm
     data_row_h = 8.9 * mm
     table_h = header_row_h + (per_page * data_row_h)
-    table_bottom = table_top - table_h
+    bottom_margin = 12.0 * mm
+    footer_line_gap = 12.0 * mm
+    footer_y4 = bottom_margin
+    footer_y3 = footer_y4 + footer_line_gap
+    footer_y2 = footer_y3 + footer_line_gap
+    footer_y1 = footer_y2 + footer_line_gap
+    footer_top_guard = footer_y1 + 9.0 * mm
+    table_bottom = max(footer_top_guard, table_top - table_h)
 
     for page_index, chunk in enumerate(page_chunks):
         c.setFillColor(colors.white)
@@ -1753,16 +1760,18 @@ def generate_delivery_note_pdf(
             right = col_edges[idx + 1]
             center_x = left + ((right - left) / 2.0)
             lines = title.split("\n")
-            line_gap = 5.0
-            start_y = table_top - (header_row_h / 2.0) + ((len(lines) - 1) * line_gap / 2.0) - 2.8
+            font_size = 7.8
+            line_height = font_size * 1.18
+            block_height = len(lines) * line_height
+            block_top = table_top - ((header_row_h - block_height) / 2.0) - (font_size * 0.1)
             for line_index, line in enumerate(lines):
                 _draw_delivery_note_text(
                     c,
                     line,
                     x=center_x,
-                    y=start_y - (line_index * line_gap),
+                    y=block_top - ((line_index + 1) * line_height) + (font_size * 0.82),
                     font_name=latin_font_bold,
-                    font_size=7.8,
+                    font_size=font_size,
                     align="center",
                 )
 
@@ -1811,12 +1820,7 @@ def generate_delivery_note_pdf(
                         align="center",
                     )
 
-        # Footer sign-off lines
-        footer_y1 = table_bottom - (14.0 * mm)
-        footer_y2 = footer_y1 - (12.0 * mm)
-        footer_y3 = footer_y2 - (12.0 * mm)
-        footer_y4 = footer_y3 - (15.0 * mm)
-
+        # Footer sign-off lines with explicit bottom margin.
         _draw_delivery_note_line(
             c,
             x=table_x + (2.0 * mm),
