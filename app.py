@@ -318,13 +318,23 @@ def _auth_cookie_bridge_html(*, cookie_name: str, secure_attr: str, pending_valu
     const shouldClear = {str(clear_cookie).lower()};
     const cookieSuffix = "; path=/; SameSite=Lax; {secure_attr}";
 
+    const rootDoc = (() => {{
+      try {{
+        if (window.top && window.top.document) return window.top.document;
+      }} catch (e) {{}}
+      try {{
+        if (window.parent && window.parent.document) return window.parent.document;
+      }} catch (e) {{}}
+      return document;
+    }})();
+
     try {{
       if (shouldClear) {{
-        document.cookie = cookieName + "=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT" + cookieSuffix;
-        window.parent.location.reload();
+        rootDoc.cookie = cookieName + "=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT" + cookieSuffix;
+        window.top.location.reload();
       }} else if (pendingValue) {{
-        document.cookie = cookieName + "=" + encodeURIComponent(pendingValue) + "; max-age=" + {_auth_session_days() * 24 * 60 * 60} + cookieSuffix;
-        window.parent.location.reload();
+        rootDoc.cookie = cookieName + "=" + encodeURIComponent(pendingValue) + "; max-age=" + {_auth_session_days() * 24 * 60 * 60} + cookieSuffix;
+        window.top.location.reload();
       }}
     }} catch (e) {{
       console.error("auth cookie bridge failed", e);
