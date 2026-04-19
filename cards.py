@@ -22,7 +22,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import csv
 
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
@@ -701,8 +701,8 @@ def generate_cards_pdf(
     out_pdf_path = Path(out_pdf_path)
     out_pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
-    page_w, page_h = A4
-    c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
+    page_w, page_h = landscape(A4)
+    c = canvas.Canvas(str(out_pdf_path), pagesize=landscape(A4))
     c.setTitle(title)
 
     latin_font_regular, latin_font_bold, arabic_font_regular, arabic_font_bold = _register_fonts(assets)
@@ -1591,26 +1591,26 @@ def generate_delivery_note_pdf(
     header_gray = colors.Color(0.55, 0.55, 0.55)
     line_width = 0.9
 
-    page_margin_x = 10.0 * mm
-    top_y = page_h - (16.0 * mm)
-    header_h = 26.0 * mm
-    logo_box_w = 30.0 * mm
-    meta_box_w = 78.0 * mm
-    table_top = top_y - header_h - (35.0 * mm)
+    page_margin_x = 9.0 * mm
+    top_y = page_h - (14.0 * mm)
+    header_h = 23.0 * mm
+    logo_box_w = 26.0 * mm
+    meta_box_w = 66.0 * mm
+    table_top = top_y - header_h - (30.0 * mm)
 
     table_x = page_margin_x
     table_w = page_w - (2.0 * page_margin_x)
     col_widths = [
-        11.0 * mm,
-        60.0 * mm,
-        17.0 * mm,
-        24.0 * mm,
-        38.0 * mm,
-        39.0 * mm,
+        10.0 * mm,
+        84.0 * mm,
+        18.0 * mm,
+        23.0 * mm,
+        41.0 * mm,
+        41.0 * mm,
     ]
     col_widths.append(table_w - sum(col_widths))
-    header_row_h = 18.0 * mm
-    data_row_h = 10.0 * mm
+    header_row_h = 15.0 * mm
+    data_row_h = 8.9 * mm
     table_h = header_row_h + (per_page * data_row_h)
     table_bottom = table_top - table_h
 
@@ -1642,9 +1642,9 @@ def generate_delivery_note_pdf(
                 c.drawImage(
                     ImageReader(str(logo_path)),
                     logo_x + (5.0 * mm),
-                    header_y + (4.0 * mm),
-                    width=20.0 * mm,
-                    height=18.0 * mm,
+                    header_y + (3.0 * mm),
+                    width=17.0 * mm,
+                    height=16.0 * mm,
                     mask="auto",
                     preserveAspectRatio=True,
                 )
@@ -1656,18 +1656,18 @@ def generate_delivery_note_pdf(
             c,
             "LAYLA KITCHEN W.L.L",
             x=title_x + (title_w / 2.0),
-            y=header_y + header_h - (8.2 * mm),
+            y=header_y + header_h - (7.2 * mm),
             font_name=title_font,
-            font_size=20.0,
+            font_size=17.0,
             align="center",
         )
         _draw_delivery_note_text(
             c,
             "DELIVERY NOTE",
             x=title_x + (title_w / 2.0),
-            y=header_y + (9.0 * mm),
+            y=header_y + (7.0 * mm),
             font_name=small_bold,
-            font_size=18.0,
+            font_size=14.0,
             align="center",
         )
 
@@ -1675,7 +1675,7 @@ def generate_delivery_note_pdf(
         meta_labels = ["Reference:", "Rev:", "Date of Issue:", "Issue No"]
         meta_values = [reference, revision, issue_date, issue_no]
         meta_row_h = header_h / 4.0
-        meta_split_x = meta_x + (34.0 * mm)
+        meta_split_x = meta_x + (30.0 * mm)
         c.line(meta_split_x, header_y, meta_split_x, header_y + header_h)
         for idx in range(1, 4):
             y = header_y + (idx * meta_row_h)
@@ -1689,7 +1689,7 @@ def generate_delivery_note_pdf(
                 x=meta_x + (1.8 * mm),
                 y=row_center_y,
                 font_name=small_font,
-                font_size=9.3,
+                font_size=8.2,
             )
             _draw_delivery_note_text(
                 c,
@@ -1697,12 +1697,12 @@ def generate_delivery_note_pdf(
                 x=meta_x + meta_box_w - (3.2 * mm),
                 y=row_center_y,
                 font_name=small_bold if idx == 0 else small_font,
-                font_size=9.3,
+                font_size=8.2,
                 align="right",
             )
 
         # Customer/location band
-        label_y = header_y - (18.0 * mm)
+        label_y = header_y - (17.0 * mm)
         c.setFillColor(colors.black)
         _draw_delivery_note_text(
             c,
@@ -1710,7 +1710,7 @@ def generate_delivery_note_pdf(
             x=table_x + (2.0 * mm),
             y=label_y,
             font_name=latin_font_bold,
-            font_size=11.3,
+            font_size=10.2,
         )
         _draw_delivery_note_text(
             c,
@@ -1718,7 +1718,7 @@ def generate_delivery_note_pdf(
             x=table_x + table_w - (2.0 * mm),
             y=label_y,
             font_name=latin_font_bold,
-            font_size=11.3,
+            font_size=10.2,
             align="right",
         )
 
@@ -1753,8 +1753,8 @@ def generate_delivery_note_pdf(
             right = col_edges[idx + 1]
             center_x = left + ((right - left) / 2.0)
             lines = title.split("\n")
-            line_gap = 6.2
-            start_y = table_top - (header_row_h / 2.0) + ((len(lines) - 1) * line_gap / 2.0) - 4.0
+            line_gap = 5.0
+            start_y = table_top - (header_row_h / 2.0) + ((len(lines) - 1) * line_gap / 2.0) - 2.8
             for line_index, line in enumerate(lines):
                 _draw_delivery_note_text(
                     c,
@@ -1762,7 +1762,7 @@ def generate_delivery_note_pdf(
                     x=center_x,
                     y=start_y - (line_index * line_gap),
                     font_name=latin_font_bold,
-                    font_size=10.0,
+                    font_size=7.8,
                     align="center",
                 )
 
@@ -1788,7 +1788,7 @@ def generate_delivery_note_pdf(
                 width = right - left
                 if col_idx == 1:
                     font_name = latin_font_regular
-                    font_size = 8.7
+                    font_size = 8.0
                     clipped = str(value or "")
                     while clipped and pdfmetrics.stringWidth(clipped, font_name, font_size) > (width - 4.0 * mm):
                         clipped = clipped[:-1].rstrip()
@@ -1807,42 +1807,42 @@ def generate_delivery_note_pdf(
                         x=left + (width / 2.0),
                         y=baseline_y,
                         font_name=latin_font_regular,
-                        font_size=8.7,
+                        font_size=7.9,
                         align="center",
                     )
 
         # Footer sign-off lines
-        footer_y1 = table_bottom - (18.0 * mm)
-        footer_y2 = footer_y1 - (14.0 * mm)
-        footer_y3 = footer_y2 - (14.0 * mm)
-        footer_y4 = footer_y3 - (18.0 * mm)
+        footer_y1 = table_bottom - (14.0 * mm)
+        footer_y2 = footer_y1 - (12.0 * mm)
+        footer_y3 = footer_y2 - (12.0 * mm)
+        footer_y4 = footer_y3 - (15.0 * mm)
 
         _draw_delivery_note_line(
             c,
             x=table_x + (2.0 * mm),
             y=footer_y1,
             label="VEHICLE",
-            line_w=41.0 * mm,
+            line_w=35.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
         _draw_delivery_note_line(
             c,
-            x=table_x + (86.0 * mm),
+            x=table_x + (76.0 * mm),
             y=footer_y1,
             label="DRIVER NAME",
-            line_w=45.0 * mm,
+            line_w=40.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
         _draw_delivery_note_line(
             c,
-            x=table_x + (180.0 * mm),
+            x=table_x + (160.0 * mm),
             y=footer_y1,
             label="TIME OUT",
-            line_w=32.0 * mm,
+            line_w=28.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
 
         _draw_delivery_note_line(
@@ -1850,18 +1850,18 @@ def generate_delivery_note_pdf(
             x=table_x + (2.0 * mm),
             y=footer_y2,
             label="VEHICLE HYGIENE CONFIRMATION",
-            line_w=50.0 * mm,
+            line_w=44.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
         _draw_delivery_note_line(
             c,
-            x=table_x + (123.0 * mm),
+            x=table_x + (107.0 * mm),
             y=footer_y2,
             label="CHECKED BY",
-            line_w=45.0 * mm,
+            line_w=41.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
 
         _draw_delivery_note_line(
@@ -1869,18 +1869,18 @@ def generate_delivery_note_pdf(
             x=table_x + (2.0 * mm),
             y=footer_y3,
             label="RECEIVED BY",
-            line_w=40.0 * mm,
+            line_w=34.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
         _draw_delivery_note_line(
             c,
-            x=table_x + (95.0 * mm),
+            x=table_x + (82.0 * mm),
             y=footer_y3,
             label="SIGNATURE",
-            line_w=50.0 * mm,
+            line_w=42.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
 
         _draw_delivery_note_line(
@@ -1888,18 +1888,18 @@ def generate_delivery_note_pdf(
             x=table_x + (2.0 * mm),
             y=footer_y4,
             label="DATE",
-            line_w=36.0 * mm,
+            line_w=28.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
         _draw_delivery_note_line(
             c,
-            x=table_x + (95.0 * mm),
+            x=table_x + (82.0 * mm),
             y=footer_y4,
             label="TIME",
-            line_w=45.0 * mm,
+            line_w=32.0 * mm,
             label_font=latin_font_regular,
-            label_size=10.0,
+            label_size=8.8,
         )
 
         if page_index + 1 < len(page_chunks):
