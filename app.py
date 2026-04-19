@@ -285,11 +285,13 @@ def _auth_cookie_bridge_html(*, cookie_name: str, secure_attr: str, pending_valu
     encoded_cookie_name = json.dumps(cookie_name)
     encoded_storage_key = json.dumps(AUTH_COOKIE_STORAGE_KEY)
     encoded_pending_value = json.dumps(pending_value)
+    encoded_bootstrap_key = json.dumps(f"{AUTH_COOKIE_STORAGE_KEY}:bootstrap_attempted")
     return f"""
     <script>
     const cookieName = {encoded_cookie_name};
     const storageKey = {encoded_storage_key};
     const pendingValue = {encoded_pending_value};
+    const bootstrapKey = {encoded_bootstrap_key};
     const shouldClear = {str(clear_cookie).lower()};
     const cookieSuffix = "; path=/; SameSite=Lax; {secure_attr}";
 
@@ -314,15 +316,19 @@ def _auth_cookie_bridge_html(*, cookie_name: str, secure_attr: str, pending_valu
     try {{
       if (shouldClear) {{
         window.localStorage.removeItem(storageKey);
+        window.sessionStorage.removeItem(bootstrapKey);
         clearCookie();
         window.top.location.reload();
       }} else if (pendingValue) {{
         window.localStorage.setItem(storageKey, pendingValue);
+        window.sessionStorage.removeItem(bootstrapKey);
         setCookie(pendingValue, {_auth_session_days() * 24 * 60 * 60});
         window.top.location.reload();
       }} else {{
         const restored = window.localStorage.getItem(storageKey);
-        if (restored) {{
+        const alreadyAttempted = window.sessionStorage.getItem(bootstrapKey) === "1";
+        if (restored && !alreadyAttempted) {{
+          window.sessionStorage.setItem(bootstrapKey, "1");
           setCookie(restored, {_auth_session_days() * 24 * 60 * 60});
           window.top.location.reload();
         }}
