@@ -701,8 +701,8 @@ def generate_cards_pdf(
     out_pdf_path = Path(out_pdf_path)
     out_pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
-    page_w, page_h = landscape(A4)
-    c = canvas.Canvas(str(out_pdf_path), pagesize=landscape(A4))
+    page_w, page_h = A4
+    c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
     c.setTitle(title)
 
     latin_font_regular, latin_font_bold, arabic_font_regular, arabic_font_bold = _register_fonts(assets)
@@ -1246,8 +1246,8 @@ def generate_greeting_labels_pdf(
     out_pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
     label_list = list(labels)
-    page_w, page_h = A4
-    c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
+    page_w, page_h = landscape(A4)
+    c = canvas.Canvas(str(out_pdf_path), pagesize=landscape(A4))
     c.setTitle(title)
 
     latin_font_regular, latin_font_bold, _arabic_font_regular, _arabic_font_bold = _register_fonts(assets)
@@ -1578,8 +1578,8 @@ def generate_delivery_note_pdf(
     else:
         page_chunks = [row_list[i:i + per_page] for i in range(0, len(row_list), per_page)]
 
-    page_w, page_h = A4
-    c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
+    page_w, page_h = landscape(A4)
+    c = canvas.Canvas(str(out_pdf_path), pagesize=landscape(A4))
     c.setTitle("Delivery Note")
 
     latin_font_regular, latin_font_bold, _, _ = _register_fonts(assets)

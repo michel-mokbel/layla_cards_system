@@ -27,6 +27,13 @@ def _pdf_page_count(pdf_bytes: bytes) -> int:
     return len(re.findall(rb"/Type\s*/Page\b", pdf_bytes))
 
 
+def _pdf_media_box(pdf_bytes: bytes) -> tuple[float, float]:
+    match = re.search(rb"/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)\s*\]", pdf_bytes)
+    if not match:
+        raise AssertionError("PDF MediaBox not found.")
+    return float(match.group(1)), float(match.group(2))
+
+
 def _assets() -> AssetPaths:
     return AssetPaths(
         logo=ASSETS_DIR / "logo.png",
@@ -129,6 +136,8 @@ class GreetingLabelTests(unittest.TestCase):
             pdf_bytes = out_path.read_bytes()
             self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
             self.assertGreater(len(pdf_bytes), 1000)
+            width, height = _pdf_media_box(pdf_bytes)
+            self.assertLess(width, height)
 
     def test_generate_delivery_note_pdf_supports_reference_layout(self) -> None:
         assets = _assets()
@@ -155,6 +164,8 @@ class GreetingLabelTests(unittest.TestCase):
             self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
             self.assertGreater(len(pdf_bytes), 1000)
             self.assertEqual(_pdf_page_count(pdf_bytes), 1)
+            width, height = _pdf_media_box(pdf_bytes)
+            self.assertGreater(width, height)
 
 
 if __name__ == "__main__":
