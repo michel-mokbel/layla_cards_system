@@ -9,7 +9,8 @@ Run:
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date, timedelta
+from datetime import date
+import base64
 import json
 import math
 import os
@@ -109,7 +110,6 @@ AUTH_SESSION_KEY = "firebase_auth_session"
 AUTH_COOKIE_NAME = "layla_auth_session"
 AUTH_COOKIE_SET_KEY = "_auth_cookie_to_set"
 AUTH_COOKIE_CLEAR_KEY = "_auth_cookie_to_clear"
-AUTH_COOKIE_STORAGE_KEY = "layla_auth_session_storage"
 
 
 @dataclass(frozen=True)
@@ -247,13 +247,40 @@ def _save_auth_session(session: FirebaseAuthSession) -> None:
     st.session_state[AUTH_SESSION_KEY] = session.to_dict()
 
 
-def _load_auth_session() -> FirebaseAuthSession | None:
-    payload = st.session_state.get(AUTH_SESSION_KEY)
-    if not isinstance(payload, dict):
+def _serialize_auth_session(session: FirebaseAuthSession) -> str:
+    raw = json.dumps(session.to_dict(), separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii")
+
+
+def _deserialize_auth_session(payload: str) -> FirebaseAuthSession | None:
+    try:
+        raw = base64.urlsafe_b64decode(str(payload).encode("ascii"))
+        data = json.loads(raw.decode("utf-8"))
+    except Exception:
         return None
-    session = FirebaseAuthSession.from_dict(payload)
+    if not isinstance(data, dict):
+        return None
+    session = FirebaseAuthSession.from_dict(data)
     if not session.uid or not session.email or not session.id_token:
         return None
+    return session
+
+
+def _load_auth_session() -> FirebaseAuthSession | None:
+    payload = st.session_state.get(AUTH_SESSION_KEY)
+    if isinstance(payload, dict):
+        session = FirebaseAuthSession.from_dict(payload)
+        if session.uid and session.email and session.id_token:
+            return session
+
+    cookie_value = _load_auth_cookie_value()
+    if not cookie_value:
+        return None
+    session = _deserialize_auth_session(cookie_value)
+    if session is None:
+        _queue_clear_auth_cookie()
+        return None
+    _save_auth_session(session)
     return session
 
 
@@ -283,55 +310,21 @@ def _queue_clear_auth_cookie() -> None:
 
 def _auth_cookie_bridge_html(*, cookie_name: str, secure_attr: str, pending_value: str = "", clear_cookie: bool = False) -> str:
     encoded_cookie_name = json.dumps(cookie_name)
-    encoded_storage_key = json.dumps(AUTH_COOKIE_STORAGE_KEY)
     encoded_pending_value = json.dumps(pending_value)
-    encoded_bootstrap_key = json.dumps(f"{AUTH_COOKIE_STORAGE_KEY}:bootstrap_attempted")
     return f"""
     <script>
     const cookieName = {encoded_cookie_name};
-    const storageKey = {encoded_storage_key};
     const pendingValue = {encoded_pending_value};
-    const bootstrapKey = {encoded_bootstrap_key};
     const shouldClear = {str(clear_cookie).lower()};
     const cookieSuffix = "; path=/; SameSite=Lax; {secure_attr}";
 
-    const rootDoc = (() => {{
-      try {{
-        if (window.top && window.top.document) return window.top.document;
-      }} catch (e) {{}}
-      try {{
-        if (window.parent && window.parent.document) return window.parent.document;
-      }} catch (e) {{}}
-      return document;
-    }})();
-
-    function setCookie(value, maxAge) {{
-      rootDoc.cookie = cookieName + "=" + encodeURIComponent(value) + "; max-age=" + maxAge + cookieSuffix;
-    }}
-
-    function clearCookie() {{
-      rootDoc.cookie = cookieName + "=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT" + cookieSuffix;
-    }}
-
     try {{
       if (shouldClear) {{
-        window.localStorage.removeItem(storageKey);
-        window.sessionStorage.removeItem(bootstrapKey);
-        clearCookie();
-        window.top.location.reload();
+        document.cookie = cookieName + "=; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT" + cookieSuffix;
+        window.parent.location.reload();
       }} else if (pendingValue) {{
-        window.localStorage.setItem(storageKey, pendingValue);
-        window.sessionStorage.removeItem(bootstrapKey);
-        setCookie(pendingValue, {_auth_session_days() * 24 * 60 * 60});
-        window.top.location.reload();
-      }} else {{
-        const restored = window.localStorage.getItem(storageKey);
-        const alreadyAttempted = window.sessionStorage.getItem(bootstrapKey) === "1";
-        if (restored && !alreadyAttempted) {{
-          window.sessionStorage.setItem(bootstrapKey, "1");
-          setCookie(restored, {_auth_session_days() * 24 * 60 * 60});
-          window.top.location.reload();
-        }}
+        document.cookie = cookieName + "=" + encodeURIComponent(pendingValue) + "; max-age=" + {_auth_session_days() * 24 * 60 * 60} + cookieSuffix;
+        window.parent.location.reload();
       }}
     }} catch (e) {{
       console.error("auth cookie bridge failed", e);
@@ -362,6 +355,7 @@ def _render_auth_cookie_bridge() -> None:
         st.stop()
 
     if pending_clear:
+        st.session_state.pop(AUTH_COOKIE_CLEAR_KEY, None)
         components.html(
             _auth_cookie_bridge_html(
                 cookie_name=cookie_name,
@@ -372,31 +366,11 @@ def _render_auth_cookie_bridge() -> None:
         )
         st.stop()
 
-    if not cookie_value:
-        components.html(
-            _auth_cookie_bridge_html(
-                cookie_name=cookie_name,
-                secure_attr=secure_attr,
-            ),
-            height=0,
-        )
-
-
-def _verify_auth_cookie_session() -> dict[str, object] | None:
-    cookie_value = _load_auth_cookie_value()
-    if not cookie_value or firebase_admin_auth is None:
-        return None
-    try:
-        return firebase_admin_auth.verify_session_cookie(cookie_value, check_revoked=True)
-    except Exception:
-        _queue_clear_auth_cookie()
-        return None
-
 
 def _verify_or_refresh_auth_session() -> dict[str, object] | None:
     session = _load_auth_session()
     if session is None:
-        return _verify_auth_cookie_session()
+        return None
     if firebase_admin_auth is None:
         _clear_auth_session()
         return None
@@ -493,12 +467,8 @@ def _render_login_gate() -> dict[str, object] | None:
     if submitted:
         try:
             session = sign_in_with_email_password(_firebase_web_api_key(), email, password)
-            session_cookie = firebase_admin_auth.create_session_cookie(  # type: ignore[union-attr]
-                session.id_token,
-                expires_in=timedelta(days=_auth_session_days()),
-            )
             _save_auth_session(session)
-            _queue_set_auth_cookie(session_cookie)
+            _queue_set_auth_cookie(_serialize_auth_session(session))
             decoded = _verify_or_refresh_auth_session()
             if decoded is None:
                 raise RuntimeError("Firebase sign-in succeeded but token verification failed.")
