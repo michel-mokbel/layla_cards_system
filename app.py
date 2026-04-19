@@ -8,7 +8,7 @@ Run:
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import date
 import json
 import math
@@ -41,7 +41,6 @@ from firebase_auth_service import (
 )
 from cards import (
     AssetPaths,
-    DeliveryNoteRow,
     Dish,
     GREETING_LABEL_STYLE_CLEAN,
     GREETING_LABEL_STYLE_PLAYFUL,
@@ -106,6 +105,17 @@ _FIRESTORE_INIT_DONE = False
 _FIRESTORE_BOOTSTRAP_MSG: str | None = None
 FIRESTORE_BATCH_LIMIT = 450
 AUTH_SESSION_KEY = "firebase_auth_session"
+
+
+@dataclass(frozen=True)
+class DeliveryNoteRow:
+    sr_no: str
+    food_type: str
+    unit: str = ""
+    quantity: str = ""
+    dispatch_temp: str = ""
+    delivery_temp: str = ""
+    remarks: str = ""
 
 
 def _read_dishes_df(path: Path) -> pd.DataFrame:
