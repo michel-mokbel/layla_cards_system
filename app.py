@@ -41,6 +41,7 @@ from firebase_auth_service import (
 )
 from cards import (
     AssetPaths,
+    DeliveryNoteRow,
     Dish,
     GREETING_LABEL_STYLE_CLEAN,
     GREETING_LABEL_STYLE_PLAYFUL,
@@ -48,6 +49,7 @@ from cards import (
     default_layout_dict,
     generate_buffet_menu_pdf,
     generate_cards_pdf,
+    generate_delivery_note_pdf,
     generate_greeting_labels_pdf,
     load_layout_config,
     parse_greeting_label_names,
@@ -657,6 +659,85 @@ def _save_candidate_rows(
     return added, updated, skipped, errors, saved_names
 
 
+def _resolve_selected_dishes(selected_names: list[str], df: pd.DataFrame, db: dict[str, Dish]) -> list[Dish]:
+    dishes = [db[n.strip().lower()] for n in selected_names if n.strip().lower() in db]
+    if dishes:
+        return dishes
+
+    resolved: list[Dish] = []
+    for name in selected_names:
+        rows = df[df["name_en"].astype(str).str.strip() == str(name).strip()]
+        if rows.empty:
+            continue
+        row = rows.iloc[0]
+        resolved.append(
+            Dish(
+                name_en=str(row.get("name_en", "")).strip(),
+                name_ar=str(row.get("name_ar", "")).strip(),
+                calories_kcal=float(row.get("calories_kcal", 0) or 0),
+                carbs_g=float(row.get("carbs_g", 0) or 0),
+                protein_g=float(row.get("protein_g", 0) or 0),
+                fat_g=float(row.get("fat_g", 0) or 0),
+                gluten=str(row.get("gluten", "gluten_free")).strip() or "gluten_free",
+                protein_type=str(row.get("protein_type", "veg")).strip() or "veg",
+                dairy=str(row.get("dairy", "dairy_free")).strip() or "dairy_free",
+            )
+        )
+    return resolved
+
+
+def _default_delivery_unit(dish_name: str) -> str:
+    normalized = str(dish_name or "").strip().lower()
+    if any(token in normalized for token in ("juice", "water", "tea", "coffee", "smoothie")):
+        return "Bot"
+    return "Pc"
+
+
+def _delivery_note_rows_df_from_dishes(dishes: list[Dish]) -> pd.DataFrame:
+    rows: list[dict[str, str]] = []
+    for idx, dish in enumerate(dishes[:10], start=1):
+        rows.append(
+            {
+                "sr_no": str(idx),
+                "food_type": dish.name_en,
+                "unit": _default_delivery_unit(dish.name_en),
+                "quantity": "",
+                "dispatch_temp": "",
+                "delivery_temp": "",
+                "remarks": "",
+            }
+        )
+    while len(rows) < 10:
+        rows.append(
+            {
+                "sr_no": str(len(rows) + 1),
+                "food_type": "",
+                "unit": "",
+                "quantity": "",
+                "dispatch_temp": "",
+                "delivery_temp": "",
+                "remarks": "",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _delivery_note_rows_from_df(edited_df: pd.DataFrame) -> list[DeliveryNoteRow]:
+    rows: list[DeliveryNoteRow] = []
+    for _, row in edited_df.iterrows():
+        values = {
+            "sr_no": str(row.get("sr_no", "")).strip(),
+            "food_type": str(row.get("food_type", "")).strip(),
+            "unit": str(row.get("unit", "")).strip(),
+            "quantity": str(row.get("quantity", "")).strip(),
+            "dispatch_temp": str(row.get("dispatch_temp", "")).strip(),
+            "delivery_temp": str(row.get("delivery_temp", "")).strip(),
+            "remarks": str(row.get("remarks", "")).strip(),
+        }
+        rows.append(DeliveryNoteRow(**values))
+    return rows
+
+
 def _firebase_drafts_collection_name() -> str:
     value = _get_secret_value("FIREBASE_DRAFTS_COLLECTION")
     if value:
@@ -1083,11 +1164,16 @@ if active_workspace == "Easter Greeting Labels":
 if active_workspace == "Buffet A4 Menu":
     st.subheader("Buffet Table Menu")
     st.caption(
-        "Create a professional buffet menu PDF with logo, dish name, nutriments, and macros (auto-paginates after 8 items/page)."
+        "Create the A4 buffet menu and a matching delivery note from the same dish selection."
     )
 
     names = sorted(df["name_en"].tolist())
     selected_menu = st.multiselect("Menu dishes", names, default=[], key="buffet_menu_selected")
+    selected_menu_signature = tuple(selected_menu)
+    if st.session_state.get("delivery_note_selected_signature") != selected_menu_signature:
+        resolved_preview_dishes = _resolve_selected_dishes(selected_menu, df, db)
+        st.session_state["delivery_note_rows"] = _delivery_note_rows_df_from_dishes(resolved_preview_dishes)
+        st.session_state["delivery_note_selected_signature"] = selected_menu_signature
 
     colA, colB = st.columns([1, 1])
     with colA:
@@ -1103,33 +1189,58 @@ if active_workspace == "Buffet A4 Menu":
         if len(selected_menu) > 8:
             st.info("More than 8 dishes will continue on the next page.")
 
-    if st.button("Generate Buffet Menu PDF", type="primary", disabled=(len(selected_menu) == 0), key="gen_buffet"):
-        dishes = [db[n.strip().lower()] for n in selected_menu if n.strip().lower() in db]
-        if not dishes:
-            # Fallback from dataframe rows when lookup keys differ.
-            for n in selected_menu:
-                rows = df[df["name_en"].astype(str).str.strip() == str(n).strip()]
-                if rows.empty:
-                    continue
-                row = rows.iloc[0]
-                dishes.append(
-                    Dish(
-                        name_en=str(row.get("name_en", "")).strip(),
-                        name_ar=str(row.get("name_ar", "")).strip(),
-                        calories_kcal=float(row.get("calories_kcal", 0) or 0),
-                        carbs_g=float(row.get("carbs_g", 0) or 0),
-                        protein_g=float(row.get("protein_g", 0) or 0),
-                        fat_g=float(row.get("fat_g", 0) or 0),
-                        gluten=str(row.get("gluten", "gluten_free")).strip() or "gluten_free",
-                        protein_type=str(row.get("protein_type", "veg")).strip() or "veg",
-                        dairy=str(row.get("dairy", "dairy_free")).strip() or "dairy_free",
-                    )
-                )
+    st.markdown("### Delivery Note")
+    dn_col1, dn_col2 = st.columns([1, 1])
+    with dn_col1:
+        delivery_client = st.text_input("Client", value="Microsoft", key="delivery_note_client")
+        delivery_location = st.text_input(
+            "Location",
+            value="Al Fardan Tower - Lusail",
+            key="delivery_note_location",
+        )
+        delivery_reference = st.text_input("Reference", value="KL/EFS-MS/026", key="delivery_note_reference")
+    with dn_col2:
+        delivery_revision = st.text_input("Rev", value="00", key="delivery_note_revision")
+        delivery_issue_date = st.date_input("Date of Issue", value=menu_date, key="delivery_note_issue_date")
+        delivery_issue_no = st.text_input("Issue No", value="00", key="delivery_note_issue_no")
+
+    delivery_filename = st.text_input(
+        "Delivery note filename",
+        value="layla_delivery_note.pdf",
+        key="delivery_note_filename",
+    )
+    delivery_rows_df = st.session_state.get("delivery_note_rows")
+    if not isinstance(delivery_rows_df, pd.DataFrame):
+        delivery_rows_df = _delivery_note_rows_df_from_dishes([])
+        st.session_state["delivery_note_rows"] = delivery_rows_df
+
+    edited_delivery_rows = st.data_editor(
+        delivery_rows_df,
+        use_container_width=True,
+        hide_index=True,
+        num_rows="fixed",
+        key="delivery_note_editor",
+        column_config={
+            "sr_no": st.column_config.TextColumn("Sr.#", width="small"),
+            "food_type": st.column_config.TextColumn("Food type", width="large"),
+            "unit": st.column_config.TextColumn("Unit", width="small"),
+            "quantity": st.column_config.TextColumn("Quantity", width="small"),
+            "dispatch_temp": st.column_config.TextColumn("Dispatch temp", width="medium"),
+            "delivery_temp": st.column_config.TextColumn("Delivery temp", width="medium"),
+            "remarks": st.column_config.TextColumn("Remarks", width="medium"),
+        },
+        disabled=["sr_no"],
+    )
+    st.session_state["delivery_note_rows"] = edited_delivery_rows
+
+    if st.button("Generate Buffet Menu + Delivery Note", type="primary", disabled=(len(selected_menu) == 0), key="gen_buffet"):
+        dishes = _resolve_selected_dishes(selected_menu, df, db)
 
         if not dishes:
             st.error("Could not resolve selected dishes from the database. Please reload the page and try again.")
         else:
             out_path = OUT_DIR / menu_filename
+            delivery_out_path = OUT_DIR / delivery_filename
             generate_buffet_menu_pdf(
                 dishes=dishes,
                 out_pdf_path=out_path,
@@ -1138,9 +1249,22 @@ if active_workspace == "Buffet A4 Menu":
                 subtitle=menu_subtitle.strip() or "Nutriments and Macronutrients",
                 menu_date=menu_date.strftime("%d %b %Y"),
             )
+            generate_delivery_note_pdf(
+                rows=_delivery_note_rows_from_df(edited_delivery_rows),
+                out_pdf_path=delivery_out_path,
+                assets=assets,
+                client_name=delivery_client.strip() or "Microsoft",
+                location=delivery_location.strip(),
+                reference=delivery_reference.strip(),
+                revision=delivery_revision.strip(),
+                issue_date=delivery_issue_date.strftime("%d/%m/%Y"),
+                issue_no=delivery_issue_no.strip(),
+            )
             st.session_state["generated_buffet_pdf_bytes"] = out_path.read_bytes()
             st.session_state["generated_buffet_pdf_name"] = out_path.name
-            st.success("Buffet menu PDF generated.")
+            st.session_state["generated_delivery_note_pdf_bytes"] = delivery_out_path.read_bytes()
+            st.session_state["generated_delivery_note_pdf_name"] = delivery_out_path.name
+            st.success("Buffet menu and delivery note PDFs generated.")
 
     buffet_bytes = st.session_state.get("generated_buffet_pdf_bytes")
     buffet_name = st.session_state.get("generated_buffet_pdf_name", "layla_buffet_menu.pdf")
@@ -1152,6 +1276,17 @@ if active_workspace == "Buffet A4 Menu":
             mime="application/pdf",
             use_container_width=True,
             key="download_buffet_pdf",
+        )
+    delivery_note_bytes = st.session_state.get("generated_delivery_note_pdf_bytes")
+    delivery_note_name = st.session_state.get("generated_delivery_note_pdf_name", "layla_delivery_note.pdf")
+    if delivery_note_bytes:
+        st.download_button(
+            "Download Delivery Note PDF",
+            data=delivery_note_bytes,
+            file_name=delivery_note_name,
+            mime="application/pdf",
+            use_container_width=True,
+            key="download_delivery_note_pdf",
         )
 
 if active_workspace == "Dish Database":

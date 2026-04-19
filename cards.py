@@ -65,6 +65,17 @@ class GreetingLabel:
     name: str
 
 
+@dataclass(frozen=True)
+class DeliveryNoteRow:
+    sr_no: str
+    food_type: str
+    unit: str = ""
+    quantity: str = ""
+    dispatch_temp: str = ""
+    delivery_temp: str = ""
+    remarks: str = ""
+
+
 GREETING_LABEL_STYLE_CLEAN = "clean_brand_pastel"
 GREETING_LABEL_STYLE_PLAYFUL = "playful_graphic_heavy"
 GREETING_LABEL_STYLES = (
@@ -1503,6 +1514,395 @@ def generate_buffet_menu_pdf(
                 )
 
         if page_idx < total_pages - 1:
+            c.showPage()
+
+    c.save()
+    return out_pdf_path
+
+
+def _draw_delivery_note_text(
+    c: canvas.Canvas,
+    text: str,
+    *,
+    x: float,
+    y: float,
+    font_name: str,
+    font_size: float,
+    align: str = "left",
+) -> None:
+    c.setFont(font_name, font_size)
+    if align == "center":
+        c.drawCentredString(x, y, text)
+    elif align == "right":
+        c.drawRightString(x, y, text)
+    else:
+        c.drawString(x, y, text)
+
+
+def _draw_delivery_note_line(
+    c: canvas.Canvas,
+    *,
+    x: float,
+    y: float,
+    label: str,
+    line_w: float,
+    label_font: str,
+    label_size: float,
+) -> None:
+    c.setFont(label_font, label_size)
+    c.drawString(x, y, label)
+    label_w = pdfmetrics.stringWidth(label, label_font, label_size)
+    line_x = x + label_w + (1.0 * mm)
+    c.line(line_x, y + 1.0, line_x + line_w, y + 1.0)
+
+
+def generate_delivery_note_pdf(
+    rows: Iterable[DeliveryNoteRow],
+    out_pdf_path: str | Path,
+    assets: AssetPaths,
+    *,
+    client_name: str,
+    location: str,
+    reference: str = "",
+    revision: str = "",
+    issue_date: str = "",
+    issue_no: str = "",
+) -> Path:
+    out_pdf_path = Path(out_pdf_path)
+    out_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+
+    row_list = list(rows)
+    per_page = 10
+    if not row_list:
+        page_chunks: List[List[DeliveryNoteRow]] = [[]]
+    else:
+        page_chunks = [row_list[i:i + per_page] for i in range(0, len(row_list), per_page)]
+
+    page_w, page_h = A4
+    c = canvas.Canvas(str(out_pdf_path), pagesize=A4)
+    c.setTitle("Delivery Note")
+
+    latin_font_regular, latin_font_bold, _, _ = _register_fonts(assets)
+    title_font = "Helvetica-BoldOblique"
+    small_font = "Helvetica"
+    small_bold = "Helvetica-Bold"
+
+    border = colors.Color(0.15, 0.15, 0.15)
+    header_gray = colors.Color(0.55, 0.55, 0.55)
+    line_width = 0.9
+
+    page_margin_x = 10.0 * mm
+    top_y = page_h - (16.0 * mm)
+    header_h = 26.0 * mm
+    logo_box_w = 30.0 * mm
+    meta_box_w = 78.0 * mm
+    table_top = top_y - header_h - (35.0 * mm)
+
+    table_x = page_margin_x
+    table_w = page_w - (2.0 * page_margin_x)
+    col_widths = [
+        11.0 * mm,
+        60.0 * mm,
+        17.0 * mm,
+        24.0 * mm,
+        38.0 * mm,
+        39.0 * mm,
+    ]
+    col_widths.append(table_w - sum(col_widths))
+    header_row_h = 18.0 * mm
+    data_row_h = 10.0 * mm
+    table_h = header_row_h + (per_page * data_row_h)
+    table_bottom = table_top - table_h
+
+    for page_index, chunk in enumerate(page_chunks):
+        c.setFillColor(colors.white)
+        c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
+        c.setStrokeColor(border)
+        c.setLineWidth(line_width)
+
+        # Header frame
+        header_x = page_margin_x
+        header_y = top_y - header_h
+        header_w = table_w
+        c.rect(header_x, header_y, header_w, header_h, stroke=1, fill=0)
+
+        logo_x = header_x
+        title_x = logo_x + logo_box_w
+        meta_x = header_x + header_w - meta_box_w
+        title_w = meta_x - title_x
+
+        c.line(title_x, header_y, title_x, header_y + header_h)
+        c.line(meta_x, header_y, meta_x, header_y + header_h)
+
+        if assets.logo and assets.logo.exists():
+            try:
+                logo_path = assets.logo.with_name("logo-no-bg.png")
+                if not logo_path.exists():
+                    logo_path = assets.logo
+                c.drawImage(
+                    ImageReader(str(logo_path)),
+                    logo_x + (5.0 * mm),
+                    header_y + (4.0 * mm),
+                    width=20.0 * mm,
+                    height=18.0 * mm,
+                    mask="auto",
+                    preserveAspectRatio=True,
+                )
+            except Exception:
+                pass
+
+        c.setFillColor(header_gray)
+        _draw_delivery_note_text(
+            c,
+            "LAYLA KITCHEN W.L.L",
+            x=title_x + (title_w / 2.0),
+            y=header_y + header_h - (8.2 * mm),
+            font_name=title_font,
+            font_size=20.0,
+            align="center",
+        )
+        _draw_delivery_note_text(
+            c,
+            "DELIVERY NOTE",
+            x=title_x + (title_w / 2.0),
+            y=header_y + (9.0 * mm),
+            font_name=small_bold,
+            font_size=18.0,
+            align="center",
+        )
+
+        # Right metadata box
+        meta_labels = ["Reference:", "Rev:", "Date of Issue:", "Issue No"]
+        meta_values = [reference, revision, issue_date, issue_no]
+        meta_row_h = header_h / 4.0
+        meta_split_x = meta_x + (34.0 * mm)
+        c.line(meta_split_x, header_y, meta_split_x, header_y + header_h)
+        for idx in range(1, 4):
+            y = header_y + (idx * meta_row_h)
+            c.line(meta_x, y, meta_x + meta_box_w, y)
+        for idx, (label, value) in enumerate(zip(meta_labels, meta_values)):
+            row_top = header_y + header_h - (idx * meta_row_h)
+            row_center_y = row_top - (meta_row_h / 2.0) - 3.0
+            _draw_delivery_note_text(
+                c,
+                label,
+                x=meta_x + (1.8 * mm),
+                y=row_center_y,
+                font_name=small_font,
+                font_size=9.3,
+            )
+            _draw_delivery_note_text(
+                c,
+                value,
+                x=meta_x + meta_box_w - (3.2 * mm),
+                y=row_center_y,
+                font_name=small_bold if idx == 0 else small_font,
+                font_size=9.3,
+                align="right",
+            )
+
+        # Customer/location band
+        label_y = header_y - (18.0 * mm)
+        c.setFillColor(colors.black)
+        _draw_delivery_note_text(
+            c,
+            f"M/S: {client_name}",
+            x=table_x + (2.0 * mm),
+            y=label_y,
+            font_name=latin_font_bold,
+            font_size=11.3,
+        )
+        _draw_delivery_note_text(
+            c,
+            f"LOCATION: {location}",
+            x=table_x + table_w - (2.0 * mm),
+            y=label_y,
+            font_name=latin_font_bold,
+            font_size=11.3,
+            align="right",
+        )
+
+        # Main table
+        c.setLineWidth(line_width)
+        c.rect(table_x, table_bottom, table_w, table_h, stroke=1, fill=0)
+        header_y_bottom = table_top - header_row_h
+        c.line(table_x, header_y_bottom, table_x + table_w, header_y_bottom)
+
+        current_x = table_x
+        col_edges = [table_x]
+        for width in col_widths:
+            current_x += width
+            col_edges.append(current_x)
+        for x in col_edges[1:-1]:
+            c.line(x, table_bottom, x, table_top)
+        for idx in range(1, per_page):
+            y = header_y_bottom - (idx * data_row_h)
+            c.line(table_x, y, table_x + table_w, y)
+
+        header_titles = [
+            "Sr.#",
+            "FOOD TYPE",
+            "UNIT",
+            "QUANTITY",
+            "TEMPERATURE AT\nTIME OF\nDISPATCH",
+            "TEMPERATURE\nAT TIME OF\nDELIVERY",
+            "REMARKS",
+        ]
+        for idx, title in enumerate(header_titles):
+            left = col_edges[idx]
+            right = col_edges[idx + 1]
+            center_x = left + ((right - left) / 2.0)
+            lines = title.split("\n")
+            line_gap = 6.2
+            start_y = table_top - (header_row_h / 2.0) + ((len(lines) - 1) * line_gap / 2.0) - 4.0
+            for line_index, line in enumerate(lines):
+                _draw_delivery_note_text(
+                    c,
+                    line,
+                    x=center_x,
+                    y=start_y - (line_index * line_gap),
+                    font_name=latin_font_bold,
+                    font_size=10.0,
+                    align="center",
+                )
+
+        padded_rows = list(chunk[:per_page])
+        while len(padded_rows) < per_page:
+            padded_rows.append(DeliveryNoteRow(sr_no=str(len(padded_rows) + 1), food_type=""))
+
+        for row_idx, row in enumerate(padded_rows):
+            row_top = header_y_bottom - (row_idx * data_row_h)
+            baseline_y = row_top - (data_row_h / 2.0) - 3.0
+            values = [
+                row.sr_no,
+                row.food_type,
+                row.unit,
+                row.quantity,
+                row.dispatch_temp,
+                row.delivery_temp,
+                row.remarks,
+            ]
+            for col_idx, value in enumerate(values):
+                left = col_edges[col_idx]
+                right = col_edges[col_idx + 1]
+                width = right - left
+                if col_idx == 1:
+                    font_name = latin_font_regular
+                    font_size = 8.7
+                    clipped = str(value or "")
+                    while clipped and pdfmetrics.stringWidth(clipped, font_name, font_size) > (width - 4.0 * mm):
+                        clipped = clipped[:-1].rstrip()
+                    _draw_delivery_note_text(
+                        c,
+                        clipped,
+                        x=left + (2.0 * mm),
+                        y=baseline_y,
+                        font_name=font_name,
+                        font_size=font_size,
+                    )
+                else:
+                    _draw_delivery_note_text(
+                        c,
+                        str(value or ""),
+                        x=left + (width / 2.0),
+                        y=baseline_y,
+                        font_name=latin_font_regular,
+                        font_size=8.7,
+                        align="center",
+                    )
+
+        # Footer sign-off lines
+        footer_y1 = table_bottom - (18.0 * mm)
+        footer_y2 = footer_y1 - (14.0 * mm)
+        footer_y3 = footer_y2 - (14.0 * mm)
+        footer_y4 = footer_y3 - (18.0 * mm)
+
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (2.0 * mm),
+            y=footer_y1,
+            label="VEHICLE",
+            line_w=41.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (86.0 * mm),
+            y=footer_y1,
+            label="DRIVER NAME",
+            line_w=45.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (180.0 * mm),
+            y=footer_y1,
+            label="TIME OUT",
+            line_w=32.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (2.0 * mm),
+            y=footer_y2,
+            label="VEHICLE HYGIENE CONFIRMATION",
+            line_w=50.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (123.0 * mm),
+            y=footer_y2,
+            label="CHECKED BY",
+            line_w=45.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (2.0 * mm),
+            y=footer_y3,
+            label="RECEIVED BY",
+            line_w=40.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (95.0 * mm),
+            y=footer_y3,
+            label="SIGNATURE",
+            line_w=50.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (2.0 * mm),
+            y=footer_y4,
+            label="DATE",
+            line_w=36.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+        _draw_delivery_note_line(
+            c,
+            x=table_x + (95.0 * mm),
+            y=footer_y4,
+            label="TIME",
+            line_w=45.0 * mm,
+            label_font=latin_font_regular,
+            label_size=10.0,
+        )
+
+        if page_index + 1 < len(page_chunks):
             c.showPage()
 
     c.save()

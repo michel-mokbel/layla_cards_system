@@ -7,10 +7,12 @@ from pathlib import Path
 
 from cards import (
     AssetPaths,
+    DeliveryNoteRow,
     Dish,
     GREETING_LABEL_STYLE_CLEAN,
     GREETING_LABEL_STYLE_PLAYFUL,
     generate_cards_pdf,
+    generate_delivery_note_pdf,
     generate_greeting_labels_pdf,
     parse_greeting_label_names,
 )
@@ -127,6 +129,32 @@ class GreetingLabelTests(unittest.TestCase):
             pdf_bytes = out_path.read_bytes()
             self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
             self.assertGreater(len(pdf_bytes), 1000)
+
+    def test_generate_delivery_note_pdf_supports_reference_layout(self) -> None:
+        assets = _assets()
+        rows = [
+            DeliveryNoteRow(sr_no="1", food_type="Strawberry Juice", unit="Bot"),
+            DeliveryNoteRow(sr_no="2", food_type="Orange Juice", unit="Bot"),
+            DeliveryNoteRow(sr_no="3", food_type="Chicken Sandwich", unit="Pc"),
+            DeliveryNoteRow(sr_no="4", food_type="Sweet Potato / Cheese", unit="Pc"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_path = Path(tmp_dir) / "delivery_note.pdf"
+            generate_delivery_note_pdf(
+                rows=rows,
+                out_pdf_path=out_path,
+                assets=assets,
+                client_name="Microsoft",
+                location="Al Fardan Tower - Lusail",
+                reference="KL/EFS-MS/026",
+                revision="00",
+                issue_date="26/02/2026",
+                issue_no="00",
+            )
+            pdf_bytes = out_path.read_bytes()
+            self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+            self.assertGreater(len(pdf_bytes), 1000)
+            self.assertEqual(_pdf_page_count(pdf_bytes), 1)
 
 
 if __name__ == "__main__":
