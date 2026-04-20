@@ -128,7 +128,8 @@ Set:
 - `GEMINI_MODEL`
 
 Optional:
-- `GEMINI_BASE_URL` (defaults to `https://generativelanguage.googleapis.com/v1beta/openai`)
+- `GEMINI_BASE_URL` (defaults to `https://generativelanguage.googleapis.com/v1beta`)
+- `GOOGLE_API_KEY` can be used instead of `GEMINI_API_KEY`
 
 #### Streamlit secrets (easy local setup)
 Create `/Users/mohamadsafar/Documents/layla_cards_system/.streamlit/secrets.toml`:

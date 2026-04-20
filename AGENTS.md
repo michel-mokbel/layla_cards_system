@@ -56,7 +56,7 @@
   - Firebase Auth sign-in: `accounts:signInWithPassword`.
   - Firebase token refresh: `securetoken.googleapis.com/v1/token`.
   - OpenAI path prefers `/v1/responses`, falls back to `/v1/chat/completions`, always expecting a JSON object response.
-  - Gemini path uses an OpenAI-compatible JSON format against `GEMINI_BASE_URL`.
+  - Gemini path uses the native `models/*:generateContent` API with `generationConfig.responseMimeType=application/json`.
 
 ## 6. Config and environment
 - Firebase auth:
@@ -70,7 +70,7 @@
   - `FIREBASE_AUTO_SEED_FROM_CSV` default `true`
   - `GOOGLE_APPLICATION_CREDENTIALS` fallback for admin creds
 - AI providers:
-  - `GEMINI_API_KEY`, `GEMINI_MODEL`, optional `GEMINI_BASE_URL`
+  - `GEMINI_API_KEY` or `GOOGLE_API_KEY`, `GEMINI_MODEL`, optional `GEMINI_BASE_URL`
   - `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_BASE_URL`
   - `AI_TRANSLATION_PROVIDER`
   - `GEMINI_TRANSLATION_MODEL`

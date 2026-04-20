@@ -11,6 +11,7 @@ import ssl
 from typing import Any, Optional
 from urllib import request
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 
 
 @dataclass(frozen=True)
@@ -94,7 +95,7 @@ def openai_configured() -> bool:
 
 
 def gemini_configured() -> bool:
-    return bool(env("GEMINI_API_KEY")) and bool(env("GEMINI_MODEL"))
+    return bool(gemini_api_key()) and bool(env("GEMINI_MODEL"))
 
 
 def ai_configured() -> bool:
@@ -107,8 +108,8 @@ def openai_base_url() -> str:
 
 def gemini_base_url() -> str:
     return (
-        env("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/")
-        or "https://generativelanguage.googleapis.com/v1beta/"
+        env("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
+        or "https://generativelanguage.googleapis.com/v1beta"
     )
 
 
@@ -116,8 +117,21 @@ def openai_model() -> Optional[str]:
     return env("OPENAI_MODEL")
 
 
+def gemini_api_key() -> Optional[str]:
+    return env("GEMINI_API_KEY") or env("GOOGLE_API_KEY")
+
+
 def gemini_model() -> Optional[str]:
     return env("GEMINI_MODEL")
+
+
+def _gemini_model_path(model: str) -> str:
+    cleaned = str(model or "").strip()
+    if not cleaned:
+        raise RuntimeError("GEMINI_MODEL is required for Gemini generation.")
+    if "/" in cleaned:
+        return cleaned
+    return f"models/{cleaned}"
 
 
 def parse_json_object(text: str) -> dict[str, Any]:
@@ -254,26 +268,51 @@ def _request_gemini_completion(
     model_override: Optional[str] = None,
 ) -> AICompletion:
     base_url = gemini_base_url().rstrip("/")
-    api_key = env("GEMINI_API_KEY")
+    api_key = gemini_api_key()
     model = model_override or gemini_model() or ""
+    model_path = _gemini_model_path(model)
     headers = {
-        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        "x-goog-api-key": str(api_key or ""),
     }
     payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": user_content},
+        "systemInstruction": {
+            "parts": [{"text": system_instruction}],
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": user_content}],
+            }
         ],
-        "response_format": {"type": "json_object"},
+        "generationConfig": {
+            "responseMimeType": "application/json",
+        },
     }
-    response = _post_json(f"{base_url}/chat/completions", payload=payload, headers=headers)
-    text = (
-        (((response.get("choices") or [None])[0] or {}).get("message") or {}).get("content")
-        if isinstance(response, dict)
-        else None
+    response = _post_json(
+        f"{base_url}/{quote(model_path, safe='/')}:generateContent",
+        payload=payload,
+        headers=headers,
     )
+    prompt_feedback = response.get("promptFeedback") if isinstance(response, dict) else None
+    candidates = response.get("candidates") if isinstance(response, dict) else None
+    if not candidates:
+        block_reason = ""
+        if isinstance(prompt_feedback, dict):
+            block_reason = str(prompt_feedback.get("blockReason") or "").strip()
+        if block_reason:
+            raise RuntimeError(f"Gemini blocked the prompt: {block_reason}")
+        raise RuntimeError("AI response missing candidates.")
+
+    text_parts: list[str] = []
+    first_candidate = candidates[0] if isinstance(candidates, list) else None
+    content = first_candidate.get("content") if isinstance(first_candidate, dict) else None
+    parts = content.get("parts") if isinstance(content, dict) else None
+    if isinstance(parts, list):
+        for part in parts:
+            if isinstance(part, dict) and isinstance(part.get("text"), str):
+                text_parts.append(part["text"])
+    text = "".join(text_parts).strip()
     if not isinstance(text, str) or not text.strip():
         raise RuntimeError("AI response missing JSON text output.")
     return AICompletion(text=text, provider="gemini", model=model)
