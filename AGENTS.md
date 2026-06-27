@@ -111,6 +111,7 @@
 ## 9. Change guide
 - UI change:
   - Edit workspace logic in `app.py`.
+  - The Add Dish auto-fill UI is shared by the standalone workspace and modal entry points on Generate Cards PDF and Buffet A4 Menu; update `_render_add_dish_autofill()` rather than duplicating the flow.
   - Edit PDF visuals/layouts in `cards.py`.
   - The `Buffet A4 Menu` workspace now owns both buffet-menu and delivery-note generation.
 - API change:
@@ -133,6 +134,7 @@
 - `app.py` is the control center and mixes UI, persistence, and orchestration; regressions here can break multiple workspaces at once.
 - `_save_dishes()` with Firestore backend performs replace-style sync; deleting a row in the editor deletes the remote doc on save.
 - `_seed_firestore_from_csv_if_empty()` writes CSV contents to Firestore automatically; be careful when testing against an empty production-like project.
+- If Firestore reads hit quota/resource exhaustion at startup, the app now disables Firestore for that process and falls back to local CSV/JSON storage while surfacing the runtime error in the UI.
 - Auth model is authentication-only; there is no repo-defined role/claim authorization beyond “signed in or bypassed”.
 - AI draft approval writes into the main dish store; schema drift or validation mistakes affect production dish data.
 - Rendering changes in `cards.py` can break print alignment, pagination, template background behavior, or Arabic text fitting.

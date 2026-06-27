@@ -67,6 +67,11 @@ except Exception:  # pragma: no cover - optional dependency
     firebase_firestore = None
 
 try:
+    from google.api_core import exceptions as google_api_exceptions  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    google_api_exceptions = None
+
+try:
     import fitz  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     fitz = None
@@ -403,6 +408,24 @@ def _firebase_collection_name() -> str:
     return "dishes"
 
 
+def _disable_firestore_runtime(message: str) -> None:
+    global _FIRESTORE_CLIENT, _FIRESTORE_INIT_ERROR
+    _FIRESTORE_CLIENT = None
+    _FIRESTORE_INIT_ERROR = message
+
+
+def _is_firestore_resource_exhausted(exc: Exception) -> bool:
+    if google_api_exceptions is not None and isinstance(exc, google_api_exceptions.ResourceExhausted):
+        return True
+    return exc.__class__.__name__ == "ResourceExhausted"
+
+
+def _firestore_runtime_error_message(exc: Exception) -> str:
+    raw_message = str(exc).strip()
+    detail = raw_message or exc.__class__.__name__
+    return f"Firestore temporarily unavailable ({detail}). Falling back to local CSV/JSON storage."
+
+
 def _record_from_row(row: pd.Series) -> dict[str, object]:
     return {
         "name_en": str(row.get("name_en", "")).strip(),
@@ -426,10 +449,16 @@ def _doc_id_from_name(name_en: str) -> str:
 def _load_dishes_from_firestore() -> pd.DataFrame:
     coll = _FIRESTORE_CLIENT.collection(_firebase_collection_name())
     rows: list[dict[str, object]] = []
-    for doc in coll.stream():
-        data = doc.to_dict() or {}
-        if isinstance(data, dict):
-            rows.append(data)
+    try:
+        for doc in coll.stream():
+            data = doc.to_dict() or {}
+            if isinstance(data, dict):
+                rows.append(data)
+    except Exception as exc:
+        if _is_firestore_resource_exhausted(exc):
+            _disable_firestore_runtime(_firestore_runtime_error_message(exc))
+            return pd.DataFrame(columns=REQUIRED_COLS)
+        raise
     if not rows:
         return pd.DataFrame(columns=REQUIRED_COLS)
     out = _normalize_dishes_df(pd.DataFrame(rows))
@@ -997,6 +1026,211 @@ assets = AssetPaths(
     font_arabic_bold=default_arabic_bold_font,
 )
 
+
+def _add_dish_key(prefix: str, name: str) -> str:
+    return f"{prefix}_{name}"
+
+
+def _render_add_dish_flash(prefix: str) -> None:
+    flash_messages = st.session_state.pop(_add_dish_key(prefix, "flash"), None)
+    if isinstance(flash_messages, dict):
+        if flash_messages.get("success"):
+            st.success(str(flash_messages["success"]))
+        if flash_messages.get("warning"):
+            st.warning(str(flash_messages["warning"]))
+        if flash_messages.get("error"):
+            st.error(str(flash_messages["error"]))
+
+
+def _render_add_dish_autofill(
+    *,
+    state_prefix: str,
+    backend: str,
+    show_title: bool = True,
+    compact: bool = False,
+) -> None:
+    if show_title:
+        st.subheader("Add a dish")
+    st.caption(
+        "Enter up to 5 dish names in English, then auto-fill (optional) and review/edit before saving."
+    )
+    _render_add_dish_flash(state_prefix)
+
+    if default_arabic_font is None:
+        st.info("Arabic font not found. Add a .ttf to assets/fonts/ to avoid Arabic text showing as boxes.")
+
+    if gemini_configured():
+        st.caption("Auto-fill is enabled via Gemini (`GEMINI_API_KEY` + `GEMINI_MODEL`).")
+    elif openai_configured():
+        st.caption("Auto-fill is enabled via OpenAI (`OPENAI_API_KEY` + `OPENAI_MODEL`).")
+    else:
+        st.caption(
+            "Auto-fill is not configured. Set `GEMINI_API_KEY` + `GEMINI_MODEL`, or `OPENAI_API_KEY` + `OPENAI_MODEL`."
+        )
+
+    batch_names_key = _add_dish_key(state_prefix, "batch_dish_names")
+    overwrite_key = _add_dish_key(state_prefix, "overwrite_if_exists")
+    candidates_key = _add_dish_key(state_prefix, "candidates")
+    editor_version_key = _add_dish_key(state_prefix, "candidate_editor_version")
+
+    with st.form(_add_dish_key(state_prefix, "form"), clear_on_submit=False):
+        batch_names_input = st.text_area(
+            "Dish names (EN)",
+            value=str(st.session_state.get(batch_names_key, "")),
+            placeholder="One dish per line\nBanana Cake\nAlmond Chia Energy Bites\nChicken Shawarma Wrap",
+            height=120 if compact else 140,
+            key=_add_dish_key(state_prefix, "batch_dish_names_input"),
+        )
+        st.caption("Enter 1 to 5 dishes, one per line.")
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            do_autofill = st.checkbox(
+                "Auto-fill (AI)",
+                value=gemini_configured() or openai_configured(),
+                help="Requires Gemini or OpenAI credentials.",
+                key=_add_dish_key(state_prefix, "do_autofill"),
+            )
+        with col2:
+            overwrite_pref = st.checkbox(
+                "Overwrite if exists",
+                value=bool(st.session_state.get(overwrite_key, False)),
+                key=_add_dish_key(state_prefix, "overwrite_pref"),
+            )
+        with col3:
+            submit = st.form_submit_button("Fetch + Review", type="primary")
+
+    if submit:
+        st.session_state[overwrite_key] = bool(overwrite_pref)
+        st.session_state[batch_names_key] = batch_names_input
+        try:
+            names_to_fetch, duplicate_names = _parse_batch_dish_names(batch_names_input, limit=5)
+            if not names_to_fetch:
+                raise ValueError("Enter at least one dish name.")
+
+            progress = st.progress(0.0, text="Preparing batch fetch...")
+            fetched_candidates: list[dict[str, object]] = []
+            fetch_errors: list[str] = []
+            total = len(names_to_fetch)
+            for idx, dish_name in enumerate(names_to_fetch, start=1):
+                progress.progress((idx - 1) / total, text=f"Fetching {idx}/{total}: {dish_name}")
+                try:
+                    enriched = enrich_dish_name(dish_name, require_ai=do_autofill)
+                    fetched_candidates.append(enriched.__dict__)
+                except Exception as e:
+                    fetch_errors.append(f"{dish_name}: {e}")
+                progress.progress(idx / total, text=f"Finished {idx}/{total}: {dish_name}")
+            progress.empty()
+
+            if fetched_candidates:
+                st.session_state[candidates_key] = fetched_candidates
+                st.session_state[editor_version_key] = int(
+                    st.session_state.get(editor_version_key, 0)
+                ) + 1
+                st.success(f"Fetched {len(fetched_candidates)} dish(es). Review below, then Save.")
+            if duplicate_names:
+                st.info(f"Ignored duplicate names in the batch: {', '.join(duplicate_names)}")
+            if fetch_errors:
+                st.error("Some dishes could not be fetched:\n" + "\n".join(fetch_errors))
+            if not fetched_candidates and not fetch_errors:
+                st.warning("No dishes were fetched.")
+        except Exception as e:
+            st.error(f"Auto-fill failed: {e}")
+
+    candidates = st.session_state.get(candidates_key)
+    if candidates:
+        st.markdown("### Review / edit")
+        overwrite_if_exists = st.checkbox(
+            "Overwrite if exists (for Save)",
+            value=bool(st.session_state.get(overwrite_key, False)),
+            key=_add_dish_key(state_prefix, "overwrite_save"),
+        )
+        candidate_df = pd.DataFrame(candidates)
+        for col in REQUIRED_COLS:
+            if col not in candidate_df.columns:
+                candidate_df[col] = ""
+        if "source" not in candidate_df.columns:
+            candidate_df["source"] = "manual"
+        candidate_df = candidate_df[REQUIRED_COLS + ["source"]]
+
+        edited_candidates = st.data_editor(
+            candidate_df,
+            use_container_width=True,
+            hide_index=True,
+            num_rows="fixed",
+            key=_add_dish_key(state_prefix, f"candidate_editor_{int(st.session_state.get(editor_version_key, 0))}"),
+            column_config={
+                "gluten": st.column_config.SelectboxColumn("gluten", options=["gluten_free", "gluten"]),
+                "protein_type": st.column_config.SelectboxColumn("protein_type", options=["veg", "meat"]),
+                "dairy": st.column_config.SelectboxColumn("dairy", options=["dairy_free", "dairy"]),
+                "calories_kcal": st.column_config.NumberColumn("calories_kcal", min_value=0.0, step=1.0),
+                "carbs_g": st.column_config.NumberColumn("carbs_g", min_value=0.0, step=0.5),
+                "protein_g": st.column_config.NumberColumn("protein_g", min_value=0.0, step=0.5),
+                "fat_g": st.column_config.NumberColumn("fat_g", min_value=0.0, step=0.5),
+                "source": st.column_config.TextColumn("source", help="Auto-fill provider used for this row."),
+            },
+            disabled=["source"],
+        )
+        st.session_state[candidates_key] = edited_candidates.to_dict(orient="records")
+
+        colS1, colS2, colS3 = st.columns([1, 1, 2])
+        with colS1:
+            if st.button("Save Dishes", type="primary", key=_add_dish_key(state_prefix, "save")):
+                try:
+                    records_to_save = edited_candidates.to_dict(orient="records")
+                    added, updated, skipped, errors, _ = _save_candidate_rows(
+                        records_to_save,
+                        overwrite_if_exists=bool(overwrite_if_exists),
+                        backend=backend,
+                    )
+
+                    if errors:
+                        st.error("Some dishes could not be saved:\n" + "\n".join(errors))
+                    elif added or updated:
+                        summary_parts = []
+                        if added:
+                            summary_parts.append(f"added {added}")
+                        if updated:
+                            summary_parts.append(f"updated {updated}")
+                        warning_text = "\n".join(skipped) if skipped else ""
+                        st.session_state[_add_dish_key(state_prefix, "flash")] = {
+                            "success": f"Saved batch: {', '.join(summary_parts)}.",
+                            "warning": warning_text or None,
+                        }
+                        st.session_state.pop(candidates_key, None)
+                        st.rerun()
+                    elif skipped:
+                        st.warning("No dishes were saved:\n" + "\n".join(skipped))
+                    else:
+                        st.warning("No dishes were saved.")
+                except Exception as e:
+                    st.error(f"Save failed: {e}")
+        with colS2:
+            if st.button("Clear Batch", key=_add_dish_key(state_prefix, "clear")):
+                st.session_state.pop(candidates_key, None)
+                st.rerun()
+        with colS3:
+            st.caption(
+                "Tip: put an Arabic TTF in assets/fonts/ so the PDF renders Arabic correctly."
+            )
+
+
+def _render_add_dish_dialog_body(state_prefix: str, backend: str) -> None:
+    _render_add_dish_autofill(
+        state_prefix=state_prefix,
+        backend=backend,
+        show_title=False,
+        compact=True,
+    )
+
+
+if hasattr(st, "dialog"):
+    _render_add_dish_dialog = st.dialog("Add Dish (Auto-fill)")(_render_add_dish_dialog_body)
+elif hasattr(st, "experimental_dialog"):
+    _render_add_dish_dialog = st.experimental_dialog("Add Dish (Auto-fill)")(_render_add_dish_dialog_body)
+else:
+    _render_add_dish_dialog = _render_add_dish_dialog_body
+
+
 layout_tuner_visible = _layout_tuner_visible()
 workspace_options = [
     "Generate Cards PDF",
@@ -1028,8 +1262,15 @@ st.session_state["active_workspace"] = active_workspace
 
 if active_workspace == "Generate Cards PDF":
     st.subheader("1) Choose dishes")
+    _render_add_dish_flash("cards_add_dish")
     names = sorted(df["name_en"].tolist())
-    selected = st.multiselect("Dishes", names, default=[])
+    select_col, add_col = st.columns([4, 1])
+    with select_col:
+        selected = st.multiselect("Dishes", names, default=[])
+    with add_col:
+        st.write("")
+        if st.button("Add Dish", key="open_cards_add_dish", use_container_width=True):
+            _render_add_dish_dialog("cards_add_dish", dishes_backend)
 
     colA, colB = st.columns([1, 1])
     with colA:
@@ -1177,8 +1418,15 @@ if active_workspace == "Buffet A4 Menu":
         "Create the A4 buffet menu and a matching delivery note from the same dish selection."
     )
 
+    _render_add_dish_flash("buffet_add_dish")
     names = sorted(df["name_en"].tolist())
-    selected_menu = st.multiselect("Menu dishes", names, default=[], key="buffet_menu_selected")
+    menu_select_col, menu_add_col = st.columns([4, 1])
+    with menu_select_col:
+        selected_menu = st.multiselect("Menu dishes", names, default=[], key="buffet_menu_selected")
+    with menu_add_col:
+        st.write("")
+        if st.button("Add Dish", key="open_buffet_add_dish", use_container_width=True):
+            _render_add_dish_dialog("buffet_add_dish", dishes_backend)
     selected_menu_signature = tuple(selected_menu)
     if st.session_state.get("delivery_note_selected_signature") != selected_menu_signature:
         resolved_preview_dishes = _resolve_selected_dishes(selected_menu, df, db)
@@ -1310,167 +1558,11 @@ if active_workspace == "Dish Database":
         st.rerun()
 
 if active_workspace == "Add Dish (Auto-fill)":
-    st.subheader("Add a dish")
-    st.caption(
-        "Enter up to 5 dish names in English, then auto-fill (optional) and review/edit before saving."
+    _render_add_dish_autofill(
+        state_prefix="add_dish_workspace",
+        backend=dishes_backend,
+        show_title=True,
     )
-
-    flash_messages = st.session_state.pop("add_dish_batch_flash", None)
-    if isinstance(flash_messages, dict):
-        if flash_messages.get("success"):
-            st.success(str(flash_messages["success"]))
-        if flash_messages.get("warning"):
-            st.warning(str(flash_messages["warning"]))
-        if flash_messages.get("error"):
-            st.error(str(flash_messages["error"]))
-
-    if default_arabic_font is None:
-        st.info("Arabic font not found. Add a .ttf to assets/fonts/ to avoid Arabic text showing as boxes.")
-
-    if gemini_configured():
-        st.caption("Auto-fill is enabled via Gemini (`GEMINI_API_KEY` + `GEMINI_MODEL`).")
-    elif openai_configured():
-        st.caption("Auto-fill is enabled via OpenAI (`OPENAI_API_KEY` + `OPENAI_MODEL`).")
-    else:
-        st.caption(
-            "Auto-fill is not configured. Set `GEMINI_API_KEY` + `GEMINI_MODEL`, or `OPENAI_API_KEY` + `OPENAI_MODEL`."
-        )
-
-    with st.form("add_dish_form", clear_on_submit=False):
-        batch_names_input = st.text_area(
-            "Dish names (EN)",
-            value=str(st.session_state.get("batch_dish_names", "")),
-            placeholder="One dish per line\nBanana Cake\nAlmond Chia Energy Bites\nChicken Shawarma Wrap",
-            height=140,
-        )
-        st.caption("Enter 1 to 5 dishes, one per line.")
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col1:
-            do_autofill = st.checkbox(
-                "Auto-fill (AI)",
-                value=gemini_configured() or openai_configured(),
-                help="Requires Gemini or OpenAI credentials.",
-            )
-        with col2:
-            overwrite_pref = st.checkbox(
-                "Overwrite if exists",
-                value=bool(st.session_state.get("overwrite_if_exists", False)),
-            )
-        with col3:
-            submit = st.form_submit_button("Fetch + Review", type="primary")
-
-    if submit:
-        st.session_state["overwrite_if_exists"] = bool(overwrite_pref)
-        st.session_state["batch_dish_names"] = batch_names_input
-        try:
-            names_to_fetch, duplicate_names = _parse_batch_dish_names(batch_names_input, limit=5)
-            if not names_to_fetch:
-                raise ValueError("Enter at least one dish name.")
-
-            progress = st.progress(0.0, text="Preparing batch fetch...")
-            fetched_candidates: list[dict[str, object]] = []
-            fetch_errors: list[str] = []
-            total = len(names_to_fetch)
-            for idx, dish_name in enumerate(names_to_fetch, start=1):
-                progress.progress((idx - 1) / total, text=f"Fetching {idx}/{total}: {dish_name}")
-                try:
-                    enriched = enrich_dish_name(dish_name, require_ai=do_autofill)
-                    fetched_candidates.append(enriched.__dict__)
-                except Exception as e:
-                    fetch_errors.append(f"{dish_name}: {e}")
-                progress.progress(idx / total, text=f"Finished {idx}/{total}: {dish_name}")
-            progress.empty()
-
-            if fetched_candidates:
-                st.session_state["candidates"] = fetched_candidates
-                st.session_state["candidate_editor_version"] = int(
-                    st.session_state.get("candidate_editor_version", 0)
-                ) + 1
-                st.success(f"Fetched {len(fetched_candidates)} dish(es). Review below, then Save.")
-            if duplicate_names:
-                st.info(f"Ignored duplicate names in the batch: {', '.join(duplicate_names)}")
-            if fetch_errors:
-                st.error("Some dishes could not be fetched:\n" + "\n".join(fetch_errors))
-            if not fetched_candidates and not fetch_errors:
-                st.warning("No dishes were fetched.")
-        except Exception as e:
-            st.error(f"Auto-fill failed: {e}")
-
-    candidates = st.session_state.get("candidates")
-    if candidates:
-        st.markdown("### Review / edit")
-        overwrite_if_exists = st.checkbox(
-            "Overwrite if exists (for Save)",
-            value=bool(st.session_state.get("overwrite_if_exists", False)),
-        )
-        candidate_df = pd.DataFrame(candidates)
-        for col in REQUIRED_COLS:
-            if col not in candidate_df.columns:
-                candidate_df[col] = ""
-        if "source" not in candidate_df.columns:
-            candidate_df["source"] = "manual"
-        candidate_df = candidate_df[REQUIRED_COLS + ["source"]]
-
-        edited_candidates = st.data_editor(
-            candidate_df,
-            use_container_width=True,
-            hide_index=True,
-            num_rows="fixed",
-            key=f"candidate_editor_{int(st.session_state.get('candidate_editor_version', 0))}",
-            column_config={
-                "gluten": st.column_config.SelectboxColumn("gluten", options=["gluten_free", "gluten"]),
-                "protein_type": st.column_config.SelectboxColumn("protein_type", options=["veg", "meat"]),
-                "dairy": st.column_config.SelectboxColumn("dairy", options=["dairy_free", "dairy"]),
-                "calories_kcal": st.column_config.NumberColumn("calories_kcal", min_value=0.0, step=1.0),
-                "carbs_g": st.column_config.NumberColumn("carbs_g", min_value=0.0, step=0.5),
-                "protein_g": st.column_config.NumberColumn("protein_g", min_value=0.0, step=0.5),
-                "fat_g": st.column_config.NumberColumn("fat_g", min_value=0.0, step=0.5),
-                "source": st.column_config.TextColumn("source", help="Auto-fill provider used for this row."),
-            },
-            disabled=["source"],
-        )
-        st.session_state["candidates"] = edited_candidates.to_dict(orient="records")
-
-        colS1, colS2, colS3 = st.columns([1, 1, 2])
-        with colS1:
-            if st.button("Save Dishes", type="primary"):
-                try:
-                    records_to_save = edited_candidates.to_dict(orient="records")
-                    added, updated, skipped, errors, _ = _save_candidate_rows(
-                        records_to_save,
-                        overwrite_if_exists=bool(overwrite_if_exists),
-                        backend=dishes_backend,
-                    )
-
-                    if errors:
-                        st.error("Some dishes could not be saved:\n" + "\n".join(errors))
-                    elif added or updated:
-                        summary_parts = []
-                        if added:
-                            summary_parts.append(f"added {added}")
-                        if updated:
-                            summary_parts.append(f"updated {updated}")
-                        warning_text = "\n".join(skipped) if skipped else ""
-                        st.session_state["add_dish_batch_flash"] = {
-                            "success": f"Saved batch: {', '.join(summary_parts)}.",
-                            "warning": warning_text or None,
-                        }
-                        st.session_state.pop("candidates", None)
-                        st.rerun()
-                    elif skipped:
-                        st.warning("No dishes were saved:\n" + "\n".join(skipped))
-                    else:
-                        st.warning("No dishes were saved.")
-                except Exception as e:
-                    st.error(f"Save failed: {e}")
-        with colS2:
-            if st.button("Clear Batch"):
-                st.session_state.pop("candidates", None)
-                st.rerun()
-        with colS3:
-            st.caption(
-                "Tip: put an Arabic TTF in assets/fonts/ so the PDF renders Arabic correctly."
-            )
 
 st.markdown(
     """
