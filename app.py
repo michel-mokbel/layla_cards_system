@@ -1048,6 +1048,7 @@ def _render_add_dish_autofill(
     backend: str,
     show_title: bool = True,
     compact: bool = False,
+    preserve_selection_keys: tuple[str, ...] = (),
 ) -> None:
     if show_title:
         st.subheader("Add a dish")
@@ -1186,6 +1187,11 @@ def _render_add_dish_autofill(
                     if errors:
                         st.error("Some dishes could not be saved:\n" + "\n".join(errors))
                     elif added or updated:
+                        preserved_selections = {
+                            key: st.session_state.get(key)
+                            for key in preserve_selection_keys
+                            if key in st.session_state
+                        }
                         summary_parts = []
                         if added:
                             summary_parts.append(f"added {added}")
@@ -1197,6 +1203,8 @@ def _render_add_dish_autofill(
                             "warning": warning_text or None,
                         }
                         st.session_state.pop(candidates_key, None)
+                        for key, value in preserved_selections.items():
+                            st.session_state[key] = value
                         st.rerun()
                     elif skipped:
                         st.warning("No dishes were saved:\n" + "\n".join(skipped))
@@ -1214,12 +1222,17 @@ def _render_add_dish_autofill(
             )
 
 
-def _render_add_dish_dialog_body(state_prefix: str, backend: str) -> None:
+def _render_add_dish_dialog_body(
+    state_prefix: str,
+    backend: str,
+    preserve_selection_keys: tuple[str, ...] = (),
+) -> None:
     _render_add_dish_autofill(
         state_prefix=state_prefix,
         backend=backend,
         show_title=False,
         compact=True,
+        preserve_selection_keys=preserve_selection_keys,
     )
 
 
@@ -1266,11 +1279,15 @@ if active_workspace == "Generate Cards PDF":
     names = sorted(df["name_en"].tolist())
     select_col, add_col = st.columns([4, 1])
     with select_col:
-        selected = st.multiselect("Dishes", names, default=[])
+        selected = st.multiselect("Dishes", names, default=[], key="cards_pdf_selected")
     with add_col:
         st.write("")
         if st.button("Add Dish", key="open_cards_add_dish", use_container_width=True):
-            _render_add_dish_dialog("cards_add_dish", dishes_backend)
+            _render_add_dish_dialog(
+                "cards_add_dish",
+                dishes_backend,
+                ("cards_pdf_selected",),
+            )
 
     colA, colB = st.columns([1, 1])
     with colA:
@@ -1426,7 +1443,11 @@ if active_workspace == "Buffet A4 Menu":
     with menu_add_col:
         st.write("")
         if st.button("Add Dish", key="open_buffet_add_dish", use_container_width=True):
-            _render_add_dish_dialog("buffet_add_dish", dishes_backend)
+            _render_add_dish_dialog(
+                "buffet_add_dish",
+                dishes_backend,
+                ("buffet_menu_selected",),
+            )
     selected_menu_signature = tuple(selected_menu)
     if st.session_state.get("delivery_note_selected_signature") != selected_menu_signature:
         resolved_preview_dishes = _resolve_selected_dishes(selected_menu, df, db)
